@@ -209,7 +209,7 @@ class ServiceUpdater(object):
             pass
 
     def generate_task_definition(self):
-        self.init_stack_info()
+        # self.init_stack_info()
         tag = self.get_tag()
         # if not os.path.exists(self.env_sample_file):
         #     log_err('env.sample not found. Exiting.')
@@ -219,19 +219,18 @@ class ServiceUpdater(object):
                    + " | tag: " + str(tag))
 
         ecs_client = EcsClient(None, None, self.region)
-        for index, service_name in enumerate(self.ecs_service_names):
-            image_url = self.ecr_image_uri
-            image_url += (':' + tag)
-            # care about 1 at the moment
-            return deployer.build_new_task_definition(
-                ecs_client,
-                self.cluster_name,
-                service_name,
-                self.version,
-                self.name,
-                self.env_sample_file,
-                self.environment,
-                image_url)
+        image_url = self.ecr_image_uri
+        image_url += (':' + tag)
+        # care about 1 at the moment
+        return deployer.build_new_task_definition(
+            ecs_client,
+            self.cluster_name,
+            None,  # ecs_service_name from cloudformation, do not need here
+            self.version,
+            self.name,
+            self.env_sample_file,
+            self.environment,
+            image_url)
 
 
     @property

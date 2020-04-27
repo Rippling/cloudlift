@@ -5,18 +5,33 @@ from colorclass import Color
 from terminaltables import SingleTable
 
 from config.parameter_store import ParameterStore
-from deployment.ecs import DeployAction
+from deployment.ecs import DeployAction, EcsAction
 from deployment.logging import log_bold, log_err, log_intent, log_with_color
 
 
 def deploy_new_version(client, cluster_name, ecs_service_name,
                        deploy_version_tag, service_name, sample_env_file_path,
                        env_name, color='white', complete_image_uri=None):
-    task_definition = build_new_task_definition(
-        client, cluster_name, ecs_service_name,
-        deploy_version_tag, service_name, sample_env_file_path,
-        env_name, complete_image_uri)
+    env_config = build_config(env_name, service_name, sample_env_file_path)
     deployment = DeployAction(client, cluster_name, ecs_service_name)
+    if deployment.service.desired_count == 0:
+        desired_count = 1
+    else:
+        desired_count = deployment.service.desired_count
+    deployment.service.set_desired_count(desired_count)
+    task_definition = deployment.get_current_task_definition(
+        deployment.service
+    )
+    if complete_image_uri is not None:
+        container_name = task_definition['containerDefinitions'][0]['name']
+        task_definition.set_images(
+            deploy_version_tag,
+            **{container_name: complete_image_uri}
+        )
+    else:
+        task_definition.set_images(deploy_version_tag)
+    for container in task_definition.containers:
+        task_definition.apply_container_environment(container, env_config)
     print_task_diff(ecs_service_name, task_definition.diff, color)
     new_task_definition = deployment.update_task_definition(task_definition)
     response = deploy_and_wait(deployment, new_task_definition, color)
@@ -30,16 +45,12 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
 def build_new_task_definition(client, cluster_name, ecs_service_name,
                        deploy_version_tag, service_name, sample_env_file_path,
                        env_name, complete_image_uri=None):
+
+    # TODO !!!!!!!!
     env_config = build_config(env_name, service_name, sample_env_file_path)
-    deployment = DeployAction(client, cluster_name, ecs_service_name)
-    if deployment.service.desired_count == 0:
-        desired_count = 1
-    else:
-        desired_count = deployment.service.desired_count
-    deployment.service.set_desired_count(desired_count)
-    task_definition = deployment.get_current_task_definition(
-        deployment.service
-    )
+    ecs_action = EcsAction(client, cluster_name, None)
+
+    task_definition = ecs_action.get_task_definition(service_name)
     if complete_image_uri is not None:
         container_name = task_definition['containerDefinitions'][0]['name']
         task_definition.set_images(
@@ -86,7 +97,8 @@ def build_config(env_name, service_name, sample_env_file_path):
     #     sys.exit(1)
 
     # return make_container_defn_env_conf(service_config, environment_config)
-    return environment_config.update(service_config)
+    environment_config.update(service_config)
+    return environment_config
 
 
 def read_config(file_content):
