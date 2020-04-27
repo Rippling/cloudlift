@@ -61,7 +61,10 @@ def deploy_and_wait(deployment, new_task_definition, color):
 
 
 def build_config(env_name, service_name, sample_env_file_path):
-    service_config = read_config(open(sample_env_file_path).read())
+    # TODO: revisit. temp allow empty local env.sample
+    # just merge local with paramstore
+    import os
+    service_config = read_config(open(sample_env_file_path).read()) if os.path.exists(sample_env_file_path) else {}
     try:
         environment_config = ParameterStore(
             service_name,
@@ -71,18 +74,19 @@ def build_config(env_name, service_name, sample_env_file_path):
         log_err("Cannot find the configuration in parameter store \
 [env: %s | service: %s]." % (env_name, service_name))
         sys.exit(1)
-    missing_env_config = set(service_config) - set(environment_config)
-    if missing_env_config:
-        log_err('There is no config value for the keys ' +
-                str(missing_env_config))
-        sys.exit(1)
-    missing_env_sample_config = set(environment_config) - set(service_config)
-    if missing_env_sample_config:
-        log_err('There is no config value for the keys in env.sample file ' +
-                str(missing_env_sample_config))
-        sys.exit(1)
+    # missing_env_config = set(service_config) - set(environment_config)
+    # if missing_env_config:
+    #     log_err('There is no config value for the keys ' +
+    #             str(missing_env_config))
+    #     sys.exit(1)
+    # missing_env_sample_config = set(environment_config) - set(service_config)
+    # if missing_env_sample_config:
+    #     log_err('There is no config value for the keys in env.sample file ' +
+    #             str(missing_env_sample_config))
+    #     sys.exit(1)
 
-    return make_container_defn_env_conf(service_config, environment_config)
+    # return make_container_defn_env_conf(service_config, environment_config)
+    return environment_config.update(service_config)
 
 
 def read_config(file_content):

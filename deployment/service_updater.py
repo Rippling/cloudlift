@@ -211,9 +211,9 @@ class ServiceUpdater(object):
     def generate_task_definition(self):
         self.init_stack_info()
         tag = self.get_tag()
-        if not os.path.exists(self.env_sample_file):
-            log_err('env.sample not found. Exiting.')
-            exit(1)
+        # if not os.path.exists(self.env_sample_file):
+        #     log_err('env.sample not found. Exiting.')
+        #     exit(1)
         log_intent("name: " + self.name
                    + " | environment: " + self.environment
                    + " | tag: " + str(tag))
