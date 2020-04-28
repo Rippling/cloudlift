@@ -95,8 +95,9 @@ class ServiceUpdater(object):
 
     def upload_image(self, additional_tags, force_update):
         self.upload_artefacts(force_update)
+        tag = self.get_tag()
         for new_tag in additional_tags:
-            self._add_image_tag(self.version, new_tag)
+            self._add_image_tag(tag, new_tag)
 
     # Check out a corresponding version and build
     def build_image(self):
