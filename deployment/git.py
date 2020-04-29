@@ -11,7 +11,7 @@ def checkout(version):
             stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT
         )
     except:
-        log_err("Could not check out given version (tag, branch or commit SHA")
+        log_err("Could not check out given version (tag, branch or commit SHA): %s" % version)
         exit(1)
 
 

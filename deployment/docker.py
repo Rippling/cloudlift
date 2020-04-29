@@ -1,12 +1,18 @@
 import subprocess
+import os
 
 from deployment.logging import log_bold, log_err, log_intent, log_warning
 
 
 def build_image(image_name, context_dir):
+    ssh_key = subprocess.check_output(['cat', os.path.expanduser('~/.ssh/id_rsa')])
+    ssh_key = ssh_key.decode('UTF-8')
+
     subprocess.check_call([
         "docker",
         "build",
+        "--build-arg",
+        "SSH_KEY="+ssh_key+"",
         "-t",
         image_name,
         context_dir
