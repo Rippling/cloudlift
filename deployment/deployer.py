@@ -46,11 +46,13 @@ def build_new_task_definition(client, cluster_name, ecs_service_name,
                        deploy_version_tag, service_name, sample_env_file_path,
                        env_name, complete_image_uri=None):
 
-    # TODO !!!!!!!!
+    # TODO
     env_config = build_config(env_name, service_name, sample_env_file_path)
     ecs_action = EcsAction(client, cluster_name, None)
 
-    task_definition = ecs_action.get_task_definition(service_name)
+    # TODO
+    existing_task_definition_name = service_name
+    task_definition = ecs_action.get_task_definition(existing_task_definition_name)
     if complete_image_uri is not None:
         container_name = task_definition['containerDefinitions'][0]['name']
         task_definition.set_images(

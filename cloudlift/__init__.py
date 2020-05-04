@@ -178,7 +178,7 @@ def make_task_definition(name, environment, version):
     # this won't cover local dirty project
     filename = "task_definition.json"
     if version:
-        filename = "task_definition-{}.json".format(version)
+        filename = "task_definition-{}-{}.json".format(version, environment)
     f = open(filename, "w")
     f.write(json.dumps(filtered_task_definition))
     f.close()

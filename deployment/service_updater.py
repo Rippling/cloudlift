@@ -148,7 +148,7 @@ class ServiceUpdater(object):
         ecr_name = self.ecr_image_uri + ':' + tag
         self._login_to_ecr()
         docker.push_image(image_name, ecr_name)
-        log_intent('Pushed the image (' + image_name + ') to (' + ecr_name + ') sucessfully.')
+        log_intent('Pushed the image (' + image_name + ') to (' + ecr_name + ') successfully.')
 
 
     def _add_image_tag(self, existing_tag, new_tag):
@@ -228,7 +228,7 @@ class ServiceUpdater(object):
             self.cluster_name,
             None,  # ecs_service_name from cloudformation, do not need here
             self.version,
-            self.name,
+            self.name, # existing task definition
             self.env_sample_file,
             self.environment,
             image_url)
