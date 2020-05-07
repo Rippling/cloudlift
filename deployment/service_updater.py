@@ -209,7 +209,7 @@ class ServiceUpdater(object):
         except Exception:
             pass
 
-    def generate_task_definition(self):
+    def generate_task_definition(self, taskdefinition):
         # self.init_stack_info()
         tag = self.get_tag()
         # if not os.path.exists(self.env_sample_file):
@@ -226,9 +226,9 @@ class ServiceUpdater(object):
         return deployer.build_new_task_definition(
             ecs_client,
             self.cluster_name,
-            None,  # ecs_service_name from cloudformation, do not need here
             self.version,
-            self.name, # existing task definition
+            self.name,
+            taskdefinition,
             self.env_sample_file,
             self.environment,
             image_url)

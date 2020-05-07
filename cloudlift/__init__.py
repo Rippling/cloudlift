@@ -163,7 +163,8 @@ def push_image(name, environment, version):
 @_require_environment
 @_require_name
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
-def make_task_definition(name, environment, version):
+@click.option('--taskdefinition', '-t', help='Existing ECS taskdefinition name')
+def make_task_definition(name, taskdefinition, environment, version):
     # 25 known properties of RegisterTaskDefinitionRequest
     properties = ["requiresCompatibilities", "customQueryParameters", "taskRoleArn", "requestClientOptions",
                   "customRequestHeaders", "generalProgressListener", "sdkRequestTimeout", "requestCredentials",
@@ -171,7 +172,7 @@ def make_task_definition(name, environment, version):
                   "requestCredentialsProvider", "containerDefinitions", "memory", "family", "cpu",
                   "sdkClientExecutionTimeout", "placementConstraints", "tags", "ipcMode", "pidMode",
                   "proxyConfiguration", "inferenceAccelerators"]
-    task_definition = ServiceUpdater(name, environment, None, version).generate_task_definition()
+    task_definition = ServiceUpdater(name, environment, None, version).generate_task_definition(taskdefinition)
     filtered_task_definition = {property: task_definition[property] for property in properties if
                                 property in task_definition}
     import json

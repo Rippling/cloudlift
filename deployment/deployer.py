@@ -42,17 +42,14 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
     return response
 
 
-def build_new_task_definition(client, cluster_name, ecs_service_name,
-                       deploy_version_tag, service_name, sample_env_file_path,
-                       env_name, complete_image_uri=None):
+def build_new_task_definition(client, cluster_name,
+                              deploy_version_tag, service_name, taskdefinition_name,
+                              sample_env_file_path,
+                              env_name, complete_image_uri=None):
 
-    # TODO
     env_config = build_config(env_name, service_name, sample_env_file_path)
     ecs_action = EcsAction(client, cluster_name, None)
-
-    # TODO
-    existing_task_definition_name = service_name
-    task_definition = ecs_action.get_task_definition(existing_task_definition_name)
+    task_definition = ecs_action.get_task_definition(taskdefinition_name)
     if complete_image_uri is not None:
         container_name = task_definition['containerDefinitions'][0]['name']
         task_definition.set_images(
@@ -98,9 +95,14 @@ def build_config(env_name, service_name, sample_env_file_path):
     #             str(missing_env_sample_config))
     #     sys.exit(1)
 
-    # return make_container_defn_env_conf(service_config, environment_config)
-    environment_config.update(service_config)
-    return environment_config
+    # TODO: Decide which one will be the source of Truth
+    # print("environment_config \n\n")
+    # print (environment_config)
+    # print("service config \n\n")
+    # print(service_config)
+    # environment_config.update(service_config)
+
+    return make_container_defn_env_conf(service_config, environment_config)
 
 
 def read_config(file_content):
