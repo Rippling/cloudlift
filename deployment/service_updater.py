@@ -108,7 +108,12 @@ class ServiceUpdater(object):
         current_branch = git.get_current_branch()
         log_bold("current branch " + current_branch)
         git.checkout(self.version)
-        docker.build_image(image_name, self.working_dir)
+
+        self._login_to_ecr()
+        latest_master_ecr_uri = self.ecr_image_uri + ':master'
+        docker.pull_image(latest_master_ecr_uri)
+        docker.build_image(image_name, self.working_dir,
+                           cache_image_name=latest_master_ecr_uri)
         # switch back
         git.checkout(current_branch)
         log_bold("Built " + image_name)

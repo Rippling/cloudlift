@@ -4,13 +4,24 @@ import os
 from deployment.logging import log_bold, log_err, log_intent, log_warning
 
 
-def build_image(image_name, context_dir):
+def pull_image(image_uri):
+    print (image_uri)
+    return subprocess.call([
+        "docker",
+        "pull",
+        image_uri
+    ])
+
+def build_image(image_name, context_dir, cache_image_name):
+    # TODO refactor
     ssh_key = subprocess.check_output(['cat', os.path.expanduser('~/.ssh/id_rsa')])
     ssh_key = ssh_key.decode('UTF-8')
 
     subprocess.check_call([
         "docker",
         "build",
+        "--cache-from",
+        cache_image_name,
         "--build-arg",
         "SSH_KEY="+ssh_key+"",
         "-t",
