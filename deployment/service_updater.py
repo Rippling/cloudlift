@@ -191,12 +191,12 @@ class ServiceUpdater(object):
         image = self._find_image_in_ecr(tag)
         if image and not force_update:
             log_intent("Image found in ECR. Done.")
-            return
+            self._add_image_tag(tag, self.version)
         else:
             log_bold("Image not found in ECR. Building image")
             self.build_image()
             self.push_image()
-        self._add_image_tag(tag, self.version)
+            self._add_image_tag(tag, self.version)
 
     def generate_task_definition(self, taskdefinition):
         tag = self.get_tag()
