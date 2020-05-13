@@ -194,9 +194,8 @@ class ServiceUpdater(object):
             return
         else:
             log_bold("Image not found in ECR. Building image")
-
-        self.build_image()
-        self.push_image()
+            self.build_image()
+            self.push_image()
         self._add_image_tag(tag, self.version)
 
     def generate_task_definition(self, taskdefinition):
