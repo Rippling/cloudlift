@@ -46,7 +46,6 @@ class ServiceUpdater(object):
     def ecr_client(self):
         return boto3.session.Session(region_name=self.region).client('ecr')
 
-
     def run(self):
         log_warning("Deploying to {self.region}".format(**locals()))
         self.init_stack_info()
@@ -106,9 +105,15 @@ class ServiceUpdater(object):
         log_bold("Building docker image " + image_name)
         # switch to the version
         current_branch = git.get_current_branch()
-        log_bold("current branch " + current_branch)
+        log_bold("Current branch is {}. Checking out {} for build.".format(current_branch, self.version))
         git.checkout(self.version)
-        docker.build_image(image_name, self.working_dir)
+        # pull latest (for cache)
+        self._login_to_ecr()
+        latest_master_ecr_uri = self.ecr_image_uri + ':master'
+        docker.pull_image(latest_master_ecr_uri)
+        # build
+        docker.build_image(image_name, self.working_dir,
+                           cache_image_name=latest_master_ecr_uri)
         # switch back
         git.checkout(current_branch)
         log_bold("Built " + image_name)
@@ -150,21 +155,20 @@ class ServiceUpdater(object):
         docker.push_image(image_name, ecr_name)
         log_intent('Pushed the image (' + image_name + ') to (' + ecr_name + ') successfully.')
 
-
     def _add_image_tag(self, existing_tag, new_tag):
         try:
-            image_manifest = self.ecr_client.batch_get_image(
-                repositoryName=self.repo_name,
-                imageIds=[
-                    {'imageTag': existing_tag}
-                ])['images'][0]['imageManifest']
+            image = self._find_image_in_ecr(existing_tag)
+            image_manifest = image['imageManifest']
             self.ecr_client.put_image(
                 repositoryName=self.repo_name,
                 imageTag=new_tag,
                 imageManifest=image_manifest
             )
         except:
-            log_err("Unable to add additional tag " + str(new_tag))
+            log_err("Unable to add additional tag {} to existing image {}".format(
+                str(new_tag),
+                str(existing_tag))
+            )
 
     def _find_image_in_ecr(self, tag):
         try:
@@ -175,19 +179,9 @@ class ServiceUpdater(object):
         except:
             return None
 
-    def get_tag(self):
-        commit_sha = git.find_commit_sha(self.version)
-        is_dirty = git.is_dirty()
-        if self.version and is_dirty:
-            log_err("Local copy is dirty. Please commit your changes first.")
-            exit(1)
-        if is_dirty:
-            commit_sha += "-dirty-" + getpass.getuser()
-        return commit_sha
-
     def ensure_image_in_ecr(self, force_update):
         tag = self.get_tag()
-        log_intent("Determined Docker tag " + tag + " based on current status")
+        log_intent("Determined Docker tag " + tag + " based on the current repo state")
         image = self._find_image_in_ecr(tag)
         if image and not force_update:
             log_intent("Image found in ECR. Done.")
@@ -198,31 +192,16 @@ class ServiceUpdater(object):
         log_bold("Building image")
         self.build_image()
         self.push_image()
-        image = self._find_image_in_ecr(tag)
-        try:
-            image_manifest = image['imageManifest']
-            self.ecr_client.put_image(
-                repositoryName=self.repo_name,
-                imageTag=self.version,
-                imageManifest=image_manifest
-            )
-        except Exception:
-            pass
+        self._add_image_tag(tag, self.version)
 
     def generate_task_definition(self, taskdefinition):
-        # self.init_stack_info()
         tag = self.get_tag()
-        # if not os.path.exists(self.env_sample_file):
-        #     log_err('env.sample not found. Exiting.')
-        #     exit(1)
         log_intent("name: " + self.name
                    + " | environment: " + self.environment
                    + " | tag: " + str(tag))
-
         ecs_client = EcsClient(None, None, self.region)
         image_url = self.ecr_image_uri
         image_url += (':' + tag)
-        # care about 1 at the moment
         return deployer.build_new_task_definition(
             ecs_client,
             self.cluster_name,
@@ -233,6 +212,15 @@ class ServiceUpdater(object):
             self.environment,
             image_url)
 
+    def get_tag(self):
+        commit_sha = git.find_commit_sha(self.version)
+        is_dirty = git.is_dirty()
+        if self.version and is_dirty:
+            log_err("Local copy is dirty. Please commit your changes first.")
+            exit(1)
+        if is_dirty:
+            commit_sha += "-dirty-" + getpass.getuser()
+        return commit_sha
 
     @property
     def ecr_image_uri(self):

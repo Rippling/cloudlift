@@ -165,7 +165,7 @@ def push_image(name, environment, version):
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
 @click.option('--taskdefinition', '-t', help='Existing ECS taskdefinition name')
 def make_task_definition(name, taskdefinition, environment, version):
-    # 25 known properties of RegisterTaskDefinitionRequest
+    # 25 supported properties of RegisterTaskDefinitionRequest
     properties = ["requiresCompatibilities", "customQueryParameters", "taskRoleArn", "requestClientOptions",
                   "customRequestHeaders", "generalProgressListener", "sdkRequestTimeout", "requestCredentials",
                   "requestMetricCollector", "executionRoleArn", "networkMode", "cloneSource", "volumes",
