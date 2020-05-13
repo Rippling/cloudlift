@@ -156,6 +156,8 @@ class ServiceUpdater(object):
         log_intent('Pushed the image (' + image_name + ') to (' + ecr_name + ') successfully.')
 
     def _add_image_tag(self, existing_tag, new_tag):
+        if existing_tag == new_tag:
+            return
         try:
             image = self._find_image_in_ecr(existing_tag)
             image_manifest = image['imageManifest']
@@ -163,6 +165,10 @@ class ServiceUpdater(object):
                 repositoryName=self.repo_name,
                 imageTag=new_tag,
                 imageManifest=image_manifest
+            )
+            log_intent("Added additional tag {} to existing image {}".format(
+                str(new_tag),
+                str(existing_tag))
             )
         except:
             log_err("Unable to add additional tag {} to existing image {}".format(
@@ -189,7 +195,6 @@ class ServiceUpdater(object):
         else:
             log_bold("Image not found in ECR. Building image")
 
-        log_bold("Building image")
         self.build_image()
         self.push_image()
         self._add_image_tag(tag, self.version)
