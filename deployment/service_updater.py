@@ -94,14 +94,14 @@ class ServiceUpdater(object):
 
     def upload_image(self, additional_tags, force_update):
         self.upload_artefacts(force_update)
-        tag = self.get_tag()
+        # tag = self.get_tag()
         for new_tag in additional_tags:
-            self._add_image_tag(tag, new_tag)
+            self._add_image_tag(self.version, new_tag)
 
     # Check out a corresponding version and build
     def build_image(self):
-        tag = self.get_tag()
-        image_name = spinalcase(self.name) + ':' + tag
+        # tag = self.get_tag()
+        image_name = spinalcase(self.name) + ':' + self.version
         log_bold("Building docker image " + image_name)
         # switch to the version
         current_branch = git.get_current_branch()
@@ -148,9 +148,10 @@ class ServiceUpdater(object):
         log_intent('Docker login to ECR succeeded.')
 
     def push_image(self):
-        tag = self.get_tag()
-        image_name = spinalcase(self.name) + ':' + tag
-        ecr_name = self.ecr_image_uri + ':' + tag
+        # tag = self.get_tag()
+        version = self.version
+        image_name = spinalcase(self.name) + ':' + version
+        ecr_name = self.ecr_image_uri + ':' + version
         self._login_to_ecr()
         docker.push_image(image_name, ecr_name)
         log_intent('Pushed the image (' + image_name + ') to (' + ecr_name + ') successfully.')
@@ -164,11 +165,6 @@ class ServiceUpdater(object):
             self.ecr_client.put_image(
                 repositoryName=self.repo_name,
                 imageTag=new_tag,
-                imageManifest=image_manifest
-            )
-            self.ecr_client.put_image(
-                repositoryName=self.repo_name,
-                imageTag=existing_tag,
                 imageManifest=image_manifest
             )
             log_intent("Added additional tag {} to existing image {}".format(
@@ -196,12 +192,11 @@ class ServiceUpdater(object):
         image = self._find_image_in_ecr(tag)
         if image and not force_update:
             log_intent("Image found in ECR. Done.")
-            self._add_image_tag(tag, self.version)
         else:
             log_bold("Image not found in ECR. Building image")
             self.build_image()
             self.push_image()
-            self._add_image_tag(tag, self.version)
+        self._add_image_tag(self.version, tag)
 
     def generate_task_definition(self, taskdefinition):
         tag = self.get_tag()
