@@ -166,6 +166,11 @@ class ServiceUpdater(object):
                 imageTag=new_tag,
                 imageManifest=image_manifest
             )
+            self.ecr_client.put_image(
+                repositoryName=self.repo_name,
+                imageTag=existing_tag,
+                imageManifest=image_manifest
+            )
             log_intent("Added additional tag {} to existing image {}".format(
                 str(new_tag),
                 str(existing_tag))
