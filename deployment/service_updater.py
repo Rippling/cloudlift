@@ -58,8 +58,6 @@ class ServiceUpdater(object):
         # self.upload_artefacts()
         log_bold("Initiating deployment\n")
         ecs_client = EcsClient(None, None, self.region)
-        print (self.ecs_service_names)
-        return
         jobs = []
         for index, service_name in enumerate(self.ecs_service_names):
             log_bold("Starting to deploy " + service_name)
