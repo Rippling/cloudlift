@@ -54,11 +54,12 @@ class ServiceUpdater(object):
             exit(1)
         log_intent("name: " + self.name + " | environment: " +
                    self.environment + " | version: " + str(self.version))
-        log_bold("Checking image in ECR")
-        self.upload_artefacts()
+        # log_bold("Checking image in ECR")
+        # self.upload_artefacts()
         log_bold("Initiating deployment\n")
         ecs_client = EcsClient(None, None, self.region)
-
+        print (self.ecs_service_names)
+        return
         jobs = []
         for index, service_name in enumerate(self.ecs_service_names):
             log_bold("Starting to deploy " + service_name)
