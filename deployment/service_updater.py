@@ -46,7 +46,7 @@ class ServiceUpdater(object):
     def ecr_client(self):
         return boto3.session.Session(region_name=self.region).client('ecr')
 
-    def run(self):
+    def run(self, upload):
         log_warning("Deploying to {self.region}".format(**locals()))
         self.init_stack_info()
         if not os.path.exists(self.env_sample_file):
@@ -54,8 +54,9 @@ class ServiceUpdater(object):
             exit(1)
         log_intent("name: " + self.name + " | environment: " +
                    self.environment + " | version: " + str(self.version))
-        # log_bold("Checking image in ECR")
-        # self.upload_artefacts()
+        if upload:
+            log_bold("Checking image in ECR")
+            self.upload_artefacts()
         log_bold("Initiating deployment\n")
         ecs_client = EcsClient(None, None, self.region)
         jobs = []

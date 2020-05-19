@@ -391,7 +391,8 @@ class EcsAction(object):
             role_arn=task_definition.role_arn
         )
         new_task_definition = EcsTaskDefinition(response[u'taskDefinition'])
-        self._client.deregister_task_definition(task_definition.arn)
+        # keep this for rollback
+        # self._client.deregister_task_definition(task_definition.arn)
         return new_task_definition
 
     def update_service(self, service):
