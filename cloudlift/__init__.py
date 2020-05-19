@@ -97,7 +97,7 @@ def edit_config(name, environment):
 @_require_environment
 @_require_name
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
-@click.option('--upload', default=False, help='Build/upload to ECR first')
+@click.option('--upload', is_flag=True, default=False, help='Build/upload to ECR first')
 def deploy_service(name, environment, version, upload):
     ServiceUpdater(name, environment, None, version).run(upload)
 
