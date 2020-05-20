@@ -11,22 +11,19 @@ def pull_image(image_uri):
         image_uri
     ])
 
-def build_image(image_name, context_dir, cache_image_name):
-    # TODO refactor
-    ssh_key = subprocess.check_output(['cat', os.path.expanduser('~/.ssh/id_rsa')])
-    ssh_key = ssh_key.decode('UTF-8')
+def build_image(image_name, context_dir, cache_image_name, build_args):
+    build_command = ["docker", "build"]
 
-    subprocess.check_call([
-        "docker",
-        "build",
-        "--cache-from",
-        cache_image_name,
-        "--build-arg",
-        "SSH_KEY="+ssh_key+"",
-        "-t",
-        image_name,
-        context_dir
-    ])
+    if cache_image_name:
+        build_command += ["--cache-from", cache_image_name]
+
+    if build_args:
+        for k, v in build_args.items():
+            build_command += ["--build-arg", "=".join((k, v))]
+
+    build_command += ["-t", image_name, context_dir]
+
+    subprocess.check_call(build_command)
 
 
 def push_image(local_name, remote_name):

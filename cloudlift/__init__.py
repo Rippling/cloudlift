@@ -98,19 +98,21 @@ def edit_config(name, environment):
 @_require_name
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
 @click.option('--upload', is_flag=True, default=False, help='Build/upload to ECR first')
-def deploy_service(name, environment, version, upload):
-    ServiceUpdater(name, environment, None, version).run(upload)
+@click.option('--build-args', type=(str, str), multiple=True, help='Docker build arguments')
+def deploy_service(name, environment, version, build_args, upload):
+    ServiceUpdater(name, environment, None, version, build_args=dict(build_args)).run(upload)
 
 
 @cli.command()
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
 @click.option('--force_update', default=False, help='Rebuild if already exists')
+@click.option('--build-args', type=(str, str), multiple=True, help='Docker build arguments')
 @click.option('--additional_tags', default=[], multiple=True,
               help='Additional tags for the image apart from commit SHA')
 @_require_name
 @_require_environment
-def upload_to_ecr(name, environment, version, additional_tags, force_update):
-    ServiceUpdater(name, environment, '', version).upload_image(additional_tags, force_update)
+def upload_to_ecr(name, environment, version, build_args, additional_tags, force_update):
+    ServiceUpdater(name, environment, '', version, build_args=dict(build_args)).upload_image(additional_tags, force_update)
 
 
 @cli.command(help="Get commit information of currently deployed code \
@@ -146,9 +148,11 @@ def get_tag(name, version):
 
 @cli.command(help="Build Docker image")
 @_require_name
+@_require_environment
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
-def build_image(name, version):
-    ServiceUpdater(name, '', '', version).build_image()
+@click.option('--build-args', type=(str, str), multiple=True, help='Docker build arguments')
+def build_image(name, environment, version, build_args):
+    ServiceUpdater(name, environment, '', version, build_args=dict(build_args)).build_image()
 
 
 @cli.command(help="Push Docker image")

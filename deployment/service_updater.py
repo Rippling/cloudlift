@@ -26,7 +26,7 @@ DEPLOYMENT_COLORS = ['blue', 'magenta', 'white', 'cyan']
 
 class ServiceUpdater(object):
     def __init__(self, name, environment, env_sample_file, version=None,
-                 working_dir='.'):
+                 build_args=None, working_dir='.'):
         self.name = name
         self.environment = environment
         if env_sample_file is not None:
@@ -37,6 +37,7 @@ class ServiceUpdater(object):
         # self.ecr_client = boto3.session.Session(region_name=self.region).client('ecr')
         # self.cluster_name = get_cluster_name(environment)
         self.working_dir = working_dir
+        self.build_args = build_args
 
     @property
     def cluster_name(self):
@@ -59,6 +60,7 @@ class ServiceUpdater(object):
             self.upload_artefacts(False)
         log_bold("Initiating deployment\n")
         ecs_client = EcsClient(None, None, self.region)
+
         jobs = []
         for index, service_name in enumerate(self.ecs_service_names):
             log_bold("Starting to deploy " + service_name)
@@ -110,9 +112,10 @@ class ServiceUpdater(object):
         # pull latest (for cache)
         self._login_to_ecr()
         latest_master_ecr_uri = self.ecr_image_uri + ':master'
-        docker.pull_image(latest_master_ecr_uri)
+        # docker.pull_image(latest_master_ecr_uri)
         # build
         docker.build_image(image_name, self.working_dir,
+                           build_args=self.build_args,
                            cache_image_name=latest_master_ecr_uri)
         # switch back
         git.checkout(current_branch)
