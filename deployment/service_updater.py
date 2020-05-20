@@ -56,7 +56,7 @@ class ServiceUpdater(object):
                    self.environment + " | version: " + str(self.version))
         if upload:
             log_bold("Checking image in ECR")
-            self.upload_artefacts()
+            self.upload_artefacts(False)
         log_bold("Initiating deployment\n")
         ecs_client = EcsClient(None, None, self.region)
         jobs = []
