@@ -19,9 +19,11 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
     else:
         desired_count = deployment.service.desired_count
     deployment.service.set_desired_count(desired_count)
-    task_definition = deployment.get_current_task_definition(
+    current_task_definition = deployment.get_current_task_definition(
         deployment.service
     )
+    # latest task definition
+    task_definition = deployment.get_task_definition(current_task_definition.family)
     if complete_image_uri is not None:
         container_name = task_definition['containerDefinitions'][0]['name']
         task_definition.set_images(
