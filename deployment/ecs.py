@@ -274,7 +274,10 @@ class EcsTaskDefinition(dict):
                 {}
             )
         }
-        merged_environment = {var[0]: var[1] for var in new_environment}
+        merged_environment = old_environment.copy()
+        for var in new_environment:
+            merged_environment[var[0]] = var[1]
+        # merged_environment = {var[0]: var[1] for var in new_environment}
 
         diff = EcsTaskDefinitionDiff(
             container[u'name'],

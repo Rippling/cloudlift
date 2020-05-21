@@ -24,6 +24,10 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
     )
     # latest task definition
     task_definition = deployment.get_task_definition(current_task_definition.family)
+    log_with_color(
+        "Running: " + current_task_definition.family_revision + " Latest: " +task_definition.family_revision,
+        color
+    )
     if complete_image_uri is not None:
         container_name = task_definition['containerDefinitions'][0]['name']
         task_definition.set_images(
