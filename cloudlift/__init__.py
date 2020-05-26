@@ -99,8 +99,9 @@ def edit_config(name, environment):
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
 @click.option('--upload', is_flag=True, default=False, help='Build/upload to ECR first')
 @click.option('--build-args', type=(str, str), multiple=True, help='Docker build arguments')
-def deploy_service(name, environment, version, build_args, upload):
-    ServiceUpdater(name, environment, None, version, build_args=dict(build_args)).run(upload)
+@click.option('--repo', default=None, help='Git repo name if different from service name')
+def deploy_service(name, environment, version, build_args, upload, repo):
+    ServiceUpdater(name, environment, None, version, build_args=dict(build_args), repo=repo).run(upload)
 
 
 @cli.command()
@@ -109,10 +110,12 @@ def deploy_service(name, environment, version, build_args, upload):
 @click.option('--build-args', type=(str, str), multiple=True, help='Docker build arguments')
 @click.option('--additional_tags', default=[], multiple=True,
               help='Additional tags for the image apart from commit SHA')
+@click.option('--repo', default=None, help='Git repo name if different from service name')
 @_require_name
 @_require_environment
-def upload_to_ecr(name, environment, version, build_args, additional_tags, force_update):
-    ServiceUpdater(name, environment, '', version, build_args=dict(build_args)).upload_image(additional_tags, force_update)
+def upload_to_ecr(name, environment, version, build_args, additional_tags, force_update, repo):
+    ServiceUpdater(name, environment, '', version, build_args=dict(build_args), repo=repo).upload_image(
+        additional_tags, force_update)
 
 
 @cli.command(help="Get commit information of currently deployed code \
@@ -151,16 +154,18 @@ def get_tag(name, version):
 @_require_environment
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
 @click.option('--build-args', type=(str, str), multiple=True, help='Docker build arguments')
-def build_image(name, environment, version, build_args):
-    ServiceUpdater(name, environment, '', version, build_args=dict(build_args)).build_image()
+@click.option('--repo', default=None, help='Git repo name if different from service name')
+def build_image(name, environment, version, build_args, repo):
+    ServiceUpdater(name, environment, '', version, build_args=dict(build_args), repo=repo).build_image()
 
 
 @cli.command(help="Push Docker image")
 @_require_name
 @_require_environment
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
-def push_image(name, environment, version):
-    ServiceUpdater(name, environment, '', version).push_image()
+@click.option('--repo', default=None, help='Git repo name if different from service name')
+def push_image(name, environment, version, repo):
+    ServiceUpdater(name, environment, '', version, repo=repo).push_image()
 
 
 @cli.command(help="Get new ECS TaskDefinition based on code + param changes")
@@ -168,7 +173,8 @@ def push_image(name, environment, version):
 @_require_name
 @click.option('--version', default=None, help='Git commit sha, branch, tag')
 @click.option('--taskdefinition', '-t', help='Existing ECS taskdefinition name')
-def make_task_definition(name, taskdefinition, environment, version):
+@click.option('--repo', default=None, help='Git repo name if different from service name')
+def make_task_definition(name, taskdefinition, environment, version, repo):
     # 25 supported properties of RegisterTaskDefinitionRequest
     properties = ["requiresCompatibilities", "customQueryParameters", "taskRoleArn", "requestClientOptions",
                   "customRequestHeaders", "generalProgressListener", "sdkRequestTimeout", "requestCredentials",
@@ -176,7 +182,7 @@ def make_task_definition(name, taskdefinition, environment, version):
                   "requestCredentialsProvider", "containerDefinitions", "memory", "family", "cpu",
                   "sdkClientExecutionTimeout", "placementConstraints", "tags", "ipcMode", "pidMode",
                   "proxyConfiguration", "inferenceAccelerators"]
-    task_definition = ServiceUpdater(name, environment, None, version).generate_task_definition(taskdefinition)
+    task_definition = ServiceUpdater(name, environment, None, version, repo=repo).generate_task_definition(taskdefinition)
     filtered_task_definition = {property: task_definition[property] for property in properties if
                                 property in task_definition}
     import json

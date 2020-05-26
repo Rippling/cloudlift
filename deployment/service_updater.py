@@ -25,9 +25,10 @@ DEPLOYMENT_COLORS = ['blue', 'magenta', 'white', 'cyan']
 
 
 class ServiceUpdater(object):
-    def __init__(self, name, environment, env_sample_file, version=None,
+    def __init__(self, name, environment, env_sample_file, repo=None, version=None,
                  build_args=None, working_dir='.'):
         self.name = name
+        self.repo = repo or name
         self.environment = environment
         if env_sample_file is not None:
             self.env_sample_file = env_sample_file
@@ -236,7 +237,7 @@ class ServiceUpdater(object):
 
     @property
     def repo_name(self):
-        return self.name + '-repo'
+        return self.repo + '-repo'
 
     @property
     def region(self):
