@@ -19,7 +19,7 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
     else:
         desired_count = deployment.service.desired_count
     deployment.service.set_desired_count(desired_count)
-    current_task_definition = deployment.get_current_task_definition(
+    task_definition = deployment.get_current_task_definition(
         deployment.service
     )
     # # latest task definition
