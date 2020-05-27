@@ -177,7 +177,7 @@ service is down',
         cd = ContainerDefinition(**container_definition_arguments)
         td = TaskDefinition(
             service_name + "TaskDefinition",
-            Family=service_name + "Family",
+            Family=service_name + pascalcase(self.env) + "Family",
             ContainerDefinitions=[cd]
         )
         self.template.add_resource(td)
