@@ -204,6 +204,18 @@ class ServiceConfiguration(object):
                 "stop_timeout": {
                     "type": "number"
                 },
+                "container_health_check": {
+                    "type": "object",
+                    "properties": {
+                        "command": {
+                            "type": "string"
+                        },
+                        "initial_delay": {
+                            "type": "number"
+                        }
+                    },
+                    "required": ["command"]
+                },
                 "placement_constraints": {
                     "type": "array",
                     "items": {

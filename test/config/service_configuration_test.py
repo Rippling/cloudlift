@@ -258,3 +258,55 @@ class TestServiceConfigurationValidation(TestCase):
             })
         except UnrecoverableException as e:
             self.fail('Exception thrown: {}'.format(e))
+
+    @patch("cloudlift.config.service_configuration.get_resource_for")
+    def test_set_config_health_check_command(self, mock_get_resource_for):
+        mock_get_resource_for.return_value = MagicMock()
+
+        service = ServiceConfiguration('test-service', 'test')
+
+        try:
+            service._validate_changes({
+                'cloudlift_version': 'test',
+                'services': {
+                    'TestService': {
+                        'memory_reservation': 1000,
+                        'command': None,
+                        'http_interface': {
+                            'internal': True,
+                            'container_port': 8080,
+                            'restrict_access_to': ['0.0.0.0/0'],
+                            'alb_enabled': True,
+                        },
+                        "container_health_check": {
+                            "command": "echo 'Working'",
+                            "initial_delay": 30,
+                        }
+                    }
+                }
+            })
+        except UnrecoverableException as e:
+            self.fail('Exception thrown: {}'.format(e))
+
+        try:
+            service._validate_changes({
+                'cloudlift_version': 'test',
+                'services': {
+                    'TestService': {
+                        'memory_reservation': 1000,
+                        'command': None,
+                        'http_interface': {
+                            'internal': True,
+                            'container_port': 8080,
+                            'restrict_access_to': ['0.0.0.0/0'],
+                            'alb_enabled': True,
+                        },
+                        "container_health_check": {
+                            "initial_delay": 123,
+                        }
+                    }
+                }
+            })
+            self.fail('Exception expected but did not fail')
+        except UnrecoverableException as e:
+            self.assertTrue(True)
