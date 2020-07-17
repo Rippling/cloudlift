@@ -210,9 +210,24 @@ class ServiceConfiguration(object):
                         "command": {
                             "type": "string"
                         },
-                        "initial_delay": {
+                        "start_period": {
                             "type": "number"
-                        }
+                        },
+                        "retries": {
+                            "type": "number",
+                            "minimum": 1,
+                            "maximum": 10
+                        },
+                        "interval": {
+                            "type": "number",
+                            "minimum": 5,
+                            "maximum": 300
+                        },
+                        "timeout": {
+                            "type": "number",
+                            "minimum": 2,
+                            "maximum": 60
+                        },
                     },
                     "required": ["command"]
                 },

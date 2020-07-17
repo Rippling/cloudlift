@@ -193,8 +193,14 @@ service is down',
         if 'container_health_check' in config:
             configured_health_check = config['container_health_check']
             ecs_health_check =  {'Command': ['CMD-SHELL', configured_health_check['command']]}
-            if configured_health_check['initial_delay'] > 0:
-                ecs_health_check['StartPeriod'] = int(configured_health_check['initial_delay'])
+            if 'start_period' in configured_health_check:
+                ecs_health_check['StartPeriod'] = int(configured_health_check['start_period'])
+            if 'retries' in configured_health_check:
+                ecs_health_check['Retries'] = int(configured_health_check['retries'])
+            if 'interval' in configured_health_check:
+                ecs_health_check['Interval'] = int(configured_health_check['interval'])
+            if 'timeout' in configured_health_check:
+                ecs_health_check['Timeout'] = int(configured_health_check['timeout'])
             container_definition_arguments['HealthCheck'] = HealthCheck(
                 **ecs_health_check
             )

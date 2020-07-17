@@ -280,7 +280,10 @@ class TestServiceConfigurationValidation(TestCase):
                         },
                         "container_health_check": {
                             "command": "echo 'Working'",
-                            "initial_delay": 30,
+                            "start_period": 30,
+                            "retries": 4,
+                            "interval": 5,
+                            "timeout": 30,
                         }
                     }
                 }
@@ -302,7 +305,7 @@ class TestServiceConfigurationValidation(TestCase):
                             'alb_enabled': True,
                         },
                         "container_health_check": {
-                            "initial_delay": 123,
+                            "start_period": 123,
                         }
                     }
                 }
