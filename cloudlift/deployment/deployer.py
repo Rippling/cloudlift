@@ -1,6 +1,5 @@
 import sys
 from time import sleep, time
-
 from cloudlift.exceptions import UnrecoverableException
 from colorclass import Color
 from terminaltables import SingleTable
@@ -108,32 +107,36 @@ def wait_for_finish(action, existing_events, color, deploy_end_time):
         waiting = not is_deployed(service['deployments']) and not service.errors
         if time() > deploy_end_time:
             log_err("Deploy timed out!")
-            cloudwatch_client = boto3.client('cloudwatch')
-            cloudwatch_client.put_metric_data(
-                Namespace='ECS/DeploymentMetrics',
-                MetricData=[
-                    {
-                        "MetricName": 'TimedOutCloudliftDeployments',
-                        "Value": 1,
-                        "Timestamp": datetime.utcnow(),
-                        "Dimensions": [
-                            {
-                                'Name': 'ClusterName',
-                                'Value': action.cluster_name
-                            },
-                            {
-                                'Name': 'ServiceName',
-                                'Value': action.service_name
-                            }
-                        ]
-                    }
-                ]
-            )
+            create_deployment_timeout_alarm(action.cluster_name, action.service_name)
             return False
     if service.errors:
         log_err(str(service.errors))
         return False
     return True
+
+
+def create_deployment_timeout_alarm(cluster_name, service_name):
+    cloudwatch_client = boto3.client('cloudwatch')
+    cloudwatch_client.put_metric_data(
+        Namespace='ECS/DeploymentMetrics',
+        MetricData=[
+            {
+                "MetricName": 'TimedOutCloudliftDeployments',
+                "Value": 1,
+                "Timestamp": datetime.utcnow(),
+                "Dimensions": [
+                    {
+                        'Name': 'ClusterName',
+                        'Value': cluster_name
+                    },
+                    {
+                        'Name': 'ServiceName',
+                        'Value': service_name
+                    }
+                ]
+            }
+        ]
+    )
 
 
 def is_deployed(service_deployments):
