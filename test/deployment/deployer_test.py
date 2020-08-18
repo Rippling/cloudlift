@@ -200,7 +200,7 @@ class TestDeployAndWait(TestCase):
 
         self.assertFalse(
             deploy_and_wait(deployment, new_task_definition, color, timeout_seconds),
-            "expected deployment to pass"
+            "expected deployment to fail"
         )
 
         deployment.deploy.assert_called_with(new_task_definition)
