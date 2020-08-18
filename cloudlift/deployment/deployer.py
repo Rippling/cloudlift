@@ -104,14 +104,14 @@ def wait_for_finish(action, existing_events, color, deploy_end_time):
             existing_events,
             color
         )
-        waiting = not is_deployed(service['deployments']) and not service.errors
+
         if time() > deploy_end_time:
             log_err("Deploy timed out!")
             record_deployment_failure_metric(action.cluster_name, action.service_name)
             return False
-    if service.errors:
-        log_err(str(service.errors))
-        return False
+
+        waiting = not is_deployed(service['deployments'])
+
     return True
 
 
