@@ -41,7 +41,7 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
     if response:
         log_bold(ecs_service_name + " Deployed successfully.")
     else:
-        log_err(ecs_service_name + " Deployment failed.")
+        raise UnrecoverableException(ecs_service_name + " Deployment failed.")
     return response
 
 
