@@ -1,7 +1,7 @@
 Outputs:
   CloudliftOptions:
     Description: Options used with cloudlift when building this service
-    Value: '{"cloudlift_version": "1.8.1", "notifications_arn": "some", "services":
+    Value: '{"cloudlift_version": "1.8.2", "notifications_arn": "some", "services":
       {"Dummy": {"memory_reservation": 1000, "command": null, "http_interface": {"internal":
       false, "container_port": 7003, "restrict_access_to": ["0.0.0.0/0"], "health_check_path":
       "/elb-check"}, "deployment": {"maximum_percent": 150}}, "DummyRunSidekiqsh":
@@ -296,22 +296,6 @@ Resources:
       Threshold: '1'
       TreatMissingData: breaching
     Type: AWS::CloudWatch::Alarm
-  TargetGroupDummy:
-    Properties:
-      HealthCheckIntervalSeconds: 30
-      HealthCheckPath: /elb-check
-      HealthCheckTimeoutSeconds: 10
-      HealthyThresholdCount: 2
-      Matcher:
-        HttpCode: 200-399
-      Port: 7003
-      Protocol: HTTP
-      TargetGroupAttributes:
-        - Key: deregistration_delay.timeout_seconds
-          Value: '30'
-      UnhealthyThresholdCount: 3
-      VpcId: !Ref 'VPC'
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
   FailedCloudliftDeploymentsDummy:
     Properties:
       AlarmActions:
@@ -354,3 +338,19 @@ Resources:
       Threshold: '0'
       TreatMissingData: notBreaching
     Type: AWS::CloudWatch::Alarm
+  TargetGroupDummy:
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /elb-check
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-399
+      Port: 7003
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref 'VPC'
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
