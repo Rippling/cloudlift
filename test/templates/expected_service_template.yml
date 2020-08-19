@@ -312,7 +312,7 @@ Resources:
       UnhealthyThresholdCount: 3
       VpcId: !Ref 'VPC'
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
-  TimedOutCloudliftDeploymentsDummy:
+  FailedCloudliftDeploymentsDummy:
     Properties:
       AlarmActions:
         - !Ref 'NotificationSnsArn'
@@ -324,7 +324,7 @@ Resources:
         - Name: ServiceName
           Value: !GetAtt 'Dummy.Name'
       EvaluationPeriods: 1
-      MetricName: TimedOutCloudliftDeployments
+      MetricName: FailedCloudliftDeployments
       Namespace: ECS/DeploymentMetrics
       OKActions:
         - !Ref 'NotificationSnsArn'
@@ -333,7 +333,7 @@ Resources:
       Threshold: '0'
       TreatMissingData: notBreaching
     Type: AWS::CloudWatch::Alarm
-  TimedOutCloudliftDeploymentsDummyRunSidekiqsh:
+  FailedCloudliftDeploymentsDummyRunSidekiqsh:
     Properties:
       AlarmActions:
         - !Ref 'NotificationSnsArn'
@@ -345,7 +345,7 @@ Resources:
         - Name: ServiceName
           Value: !GetAtt 'DummyRunSidekiqsh.Name'
       EvaluationPeriods: 1
-      MetricName: TimedOutCloudliftDeployments
+      MetricName: FailedCloudliftDeployments
       Namespace: ECS/DeploymentMetrics
       OKActions:
         - !Ref 'NotificationSnsArn'

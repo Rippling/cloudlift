@@ -66,7 +66,7 @@ class TestDeployAndWait(TestCase):
 
         new_task_definition = EcsTaskDefinition({'containerDefinitions': []})
         color = "green"
-        timeout_seconds = 2
+        timeout_seconds = 3
 
         self.assertTrue(
             deploy_and_wait(deployment, new_task_definition, color, timeout_seconds),
@@ -75,8 +75,8 @@ class TestDeployAndWait(TestCase):
 
         deployment.deploy.assert_called_with(new_task_definition)
 
-    @patch("cloudlift.deployment.deployer.boto3.client")
-    def test_deploy_and_wait_timeout(self, mock_boto3):
+    @patch("cloudlift.deployment.deployer.log_err")
+    def test_deploy_and_wait_timeout(self, mock_log_err):
         deployment = MagicMock()
         deployment.get_service.return_value = self.create_ecs_service_with_status({
             'events': [
@@ -91,19 +91,16 @@ class TestDeployAndWait(TestCase):
         color = "green"
         timeout_seconds = 2
 
-        mock_cw_client = MagicMock()
-        mock_boto3.return_value = mock_cw_client
-
         self.assertFalse(
             deploy_and_wait(deployment, new_task_definition, color, timeout_seconds),
             "expected deployment to fail"
         )
 
         deployment.deploy.assert_called_with(new_task_definition)
-        mock_cw_client.put_metric_data.assert_called_once()
+        mock_log_err.assert_called_with('Deployment timed out!')
 
-    @patch("cloudlift.deployment.deployer.boto3.client")
-    def test_deploy_and_wait_unable_to_place_tasks_initially_succeeds_eventually(self, mock_boto3):
+    @patch("cloudlift.deployment.deployer.log_err")
+    def test_deploy_and_wait_unable_to_place_tasks_initially_succeeds_eventually(self, mock_log_err):
         deployment = MagicMock()
         start_time = datetime.now(tz=tzlocal())
         deployment.get_service.side_effect = [
@@ -143,19 +140,16 @@ class TestDeployAndWait(TestCase):
         color = "green"
         timeout_seconds = 4
 
-        mock_cw_client = MagicMock()
-        mock_boto3.return_value = mock_cw_client
-
         self.assertTrue(
             deploy_and_wait(deployment, new_task_definition, color, timeout_seconds),
             "expected deployment to pass"
         )
 
         deployment.deploy.assert_called_with(new_task_definition)
-        mock_cw_client.put_metric_data.assert_not_called()
+        mock_log_err.assert_not_called()
 
-    @patch("cloudlift.deployment.deployer.boto3.client")
-    def test_deploy_and_wait_unable_to_place_tasks_till_timeout(self, mock_boto3):
+    @patch("cloudlift.deployment.deployer.log_err")
+    def test_deploy_and_wait_unable_to_place_tasks_till_timeout(self, mock_log_err):
         deployment = MagicMock()
         start_time = datetime.now(tz=tzlocal())
         deployment.get_service.side_effect = [
@@ -195,16 +189,13 @@ class TestDeployAndWait(TestCase):
         color = "green"
         timeout_seconds = 2
 
-        mock_cw_client = MagicMock()
-        mock_boto3.return_value = mock_cw_client
-
         self.assertFalse(
             deploy_and_wait(deployment, new_task_definition, color, timeout_seconds),
             "expected deployment to fail"
         )
 
         deployment.deploy.assert_called_with(new_task_definition)
-        mock_cw_client.put_metric_data.assert_called_once()
+        mock_log_err.assert_called_with('Deployment timed out!')
 
 
 @patch('cloudlift.deployment.deployer.datetime')
@@ -221,7 +212,7 @@ def test_create_deployment_timeout_alarm(mock_boto3_client, dt):
         Namespace='ECS/DeploymentMetrics',
         MetricData=[
             {
-                "MetricName": 'TimedOutCloudliftDeployments',
+                "MetricName": 'FailedCloudliftDeployments',
                 "Value": 1,
                 "Timestamp": now,
                 "Dimensions": [

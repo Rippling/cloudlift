@@ -37,12 +37,14 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
         task_definition.apply_container_environment(container, env_config)
     print_task_diff(ecs_service_name, task_definition.diff, color)
     new_task_definition = deployment.update_task_definition(task_definition)
-    response = deploy_and_wait(deployment, new_task_definition, color, timeout_seconds)
-    if response:
-        log_bold(ecs_service_name + " Deployed successfully.")
-    else:
+
+    deployment_succeeded = deploy_and_wait(deployment, new_task_definition, color, timeout_seconds)
+
+    if not deployment_succeeded:
+        record_deployment_failure_metric(deployment.cluster_name, deployment.service_name)
         raise UnrecoverableException(ecs_service_name + " Deployment failed.")
-    return response
+
+    log_bold(ecs_service_name + " Deployed successfully.")
 
 
 def deploy_and_wait(deployment, new_task_definition, color, timeout_seconds):
@@ -95,9 +97,7 @@ def make_container_defn_env_conf(service_config, environment_config):
 
 
 def wait_for_finish(action, existing_events, color, deploy_end_time):
-    waiting = True
-    while waiting:
-        sleep(1)
+    while time() <= deploy_end_time:
         service = action.get_service()
         existing_events = fetch_and_print_new_events(
             service,
@@ -105,14 +105,15 @@ def wait_for_finish(action, existing_events, color, deploy_end_time):
             color
         )
 
-        if time() > deploy_end_time:
-            log_err("Deploy timed out!")
-            record_deployment_failure_metric(action.cluster_name, action.service_name)
-            return False
+        print(service['deployments'])
 
-        waiting = not is_deployed(service['deployments'])
+        if is_deployed(service['deployments']):
+            return True
 
-    return True
+        sleep(1)
+
+    log_err("Deployment timed out!")
+    return False
 
 
 def record_deployment_failure_metric(cluster_name, service_name):
@@ -121,7 +122,7 @@ def record_deployment_failure_metric(cluster_name, service_name):
         Namespace='ECS/DeploymentMetrics',
         MetricData=[
             {
-                "MetricName": 'TimedOutCloudliftDeployments',
+                "MetricName": 'FailedCloudliftDeployments',
                 "Value": 1,
                 "Timestamp": datetime.utcnow(),
                 "Dimensions": [
