@@ -1,7 +1,7 @@
 Outputs:
   CloudliftOptions:
     Description: Options used with cloudlift when building this service
-    Value: '{"cloudlift_version": "1.8.0", "notifications_arn": "some", "services":
+    Value: '{"cloudlift_version": "1.8.2", "notifications_arn": "some", "services":
       {"DummyFargateRunSidekiqsh": {"command": null, "fargate": {"cpu": 256, "memory":
       512}, "memory_reservation": 512}, "DummyFargateService": {"command": null, "fargate":
       {"cpu": 256, "memory": 512}, "http_interface": {"container_port": 80, "internal":
@@ -108,6 +108,9 @@ Resources:
   DummyFargateService:
     Properties:
       Cluster: cluster-staging
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
       DesiredCount: 45
       LaunchType: FARGATE
       LoadBalancers:
@@ -310,40 +313,6 @@ Resources:
       Threshold: '1'
       TreatMissingData: breaching
     Type: AWS::CloudWatch::Alarm
-  FargateServicestagingDummyFargateRunSidekiqsh:
-    Properties:
-      GroupDescription: FargateServicestagingDummyFargateRunSidekiqsh
-      GroupName: FargateServicestagingDummyFargateRunSidekiqsh
-      SecurityGroupIngress: []
-      VpcId: !Ref 'VPC'
-    Type: AWS::EC2::SecurityGroup
-  FargateServicestagingDummyFargateService:
-    Properties:
-      GroupDescription: FargateServicestagingDummyFargateService
-      GroupName: FargateServicestagingDummyFargateService
-      SecurityGroupIngress:
-        - FromPort: 80
-          IpProtocol: TCP
-          ToPort: 80
-      VpcId: !Ref 'VPC'
-    Type: AWS::EC2::SecurityGroup
-  TargetGroupDummyFargateService:
-    Properties:
-      HealthCheckIntervalSeconds: 30
-      HealthCheckPath: /elb-check
-      HealthCheckTimeoutSeconds: 10
-      HealthyThresholdCount: 2
-      Matcher:
-        HttpCode: 200-399
-      Port: 80
-      Protocol: HTTP
-      TargetGroupAttributes:
-        - Key: deregistration_delay.timeout_seconds
-          Value: '30'
-      TargetType: ip
-      UnhealthyThresholdCount: 3
-      VpcId: !Ref 'VPC'
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
   FailedCloudliftDeploymentsDummyFargateRunSidekiqsh:
     Properties:
       AlarmActions:
@@ -386,3 +355,37 @@ Resources:
       Threshold: '0'
       TreatMissingData: notBreaching
     Type: AWS::CloudWatch::Alarm
+  FargateServicestagingDummyFargateRunSidekiqsh:
+    Properties:
+      GroupDescription: FargateServicestagingDummyFargateRunSidekiqsh
+      GroupName: FargateServicestagingDummyFargateRunSidekiqsh
+      SecurityGroupIngress: []
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  FargateServicestagingDummyFargateService:
+    Properties:
+      GroupDescription: FargateServicestagingDummyFargateService
+      GroupName: FargateServicestagingDummyFargateService
+      SecurityGroupIngress:
+        - FromPort: 80
+          IpProtocol: TCP
+          ToPort: 80
+      VpcId: !Ref 'VPC'
+    Type: AWS::EC2::SecurityGroup
+  TargetGroupDummyFargateService:
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /elb-check
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-399
+      Port: 80
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+      TargetType: ip
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref 'VPC'
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
