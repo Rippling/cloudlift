@@ -1,7 +1,7 @@
 Outputs:
   CloudliftOptions:
     Description: Options used with cloudlift when building this service
-    Value: '{"cloudlift_version": "1.8.2", "notifications_arn": "some", "services":
+    Value: '{"cloudlift_version": "test-version", "notifications_arn": "some", "services":
       {"Dummy": {"memory_reservation": 1000, "command": null, "http_interface": {"internal":
       false, "container_port": 7003, "restrict_access_to": ["0.0.0.0/0"], "health_check_path":
       "/elb-check"}, "deployment": {"maximum_percent": 150}}, "DummyRunSidekiqsh":
