@@ -15,7 +15,7 @@ from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
                              NetworkConfiguration, PlacementStrategy,
                              PortMapping, Service, TaskDefinition, PlacementConstraint, SystemControl,
                              HealthCheck)
-from troposphere.elasticloadbalancingv2 import Action, Certificate, Listener
+from troposphere.elasticloadbalancingv2 import Action, Certificate, Listener, SubnetMapping
 from troposphere.elasticloadbalancingv2 import LoadBalancer as ELBv2
 from troposphere.elasticloadbalancingv2 import (Matcher, RedirectConfig,
                                                 TargetGroup,
@@ -310,10 +310,11 @@ service is down',
                                                            MaximumPercent=int(maximum_percent))
 
         if 'udp_interface' in config:
-            lb, target_group_name = self._add_ecs_lb(cd, service_name, config['udp_interface'], launch_type)
+            lb, target_group_name = self._add_ecs_lb(cd, service_name, config['udp_interface'], launch_type,
+                                                     protocol='udp')
             nlb_enabled = 'nlb_enabled' in config['udp_interface'] and config['udp_interface']['nlb_enabled']
             if nlb_enabled:
-                lb, service_listener, nlb_sg = self._add_alb(service_name, config, target_group_name)
+                elb, service_listener, nlb_sg = self._add_alb(service_name, config, target_group_name)
 
             if launch_type == self.LAUNCH_TYPE_FARGATE:
                 # if launch type is ec2, then services inherit the ec2 instance security group
@@ -377,15 +378,16 @@ service is down',
                 Output(
                     service_name + "URL",
                     Description="The URL at which the service is accessible",
-                    Value=Sub("udp://${" + lb.name + ".DNSName}")
+                    Value=Sub("udp://${" + elb.name + ".DNSName}")
                 )
             )
             self.template.add_resource(svc)
         elif 'http_interface' in config:
-            lb, target_group_name = self._add_ecs_lb(cd, service_name, config['http_interface'], launch_type)
+            lb, target_group_name = self._add_ecs_lb(cd, service_name, config['http_interface'], launch_type,
+                                                     protocol='http')
             alb_enabled = 'alb_enabled' in config['http_interface'] and config['http_interface']['alb_enabled']
             if alb_enabled:
-                lb, service_listener, alb_sg = self._add_alb(service_name, config, target_group_name)
+                elb, service_listener, alb_sg = self._add_alb(service_name, config, target_group_name)
 
             if launch_type == self.LAUNCH_TYPE_FARGATE:
                 # if launch type is ec2, then services inherit the ec2 instance security group
@@ -454,7 +456,7 @@ service is down',
                     Output(
                         service_name + "URL",
                         Description="The URL at which the service is accessible",
-                        Value=Sub("https://${" + lb.name + ".DNSName}")
+                        Value=Sub("https://${" + elb.name + ".DNSName}")
                     )
                 )
         else:
@@ -533,7 +535,7 @@ service is down',
             }
         )
 
-    def _add_ecs_lb(self, cd, service_name, elb_config, launch_type):
+    def _add_ecs_lb(self, cd, service_name, elb_config, launch_type, protocol='http'):
         target_group_name = "TargetGroup" + service_name
         health_check_path = elb_config['health_check_path'] if 'health_check_path' in elb_config else "/elb-check"
         if elb_config['internal']:
@@ -563,7 +565,9 @@ service is down',
             VpcId=Ref(self.vpc),
             Protocol=protocol.upper(),
             HealthCheckTimeoutSeconds=10,
-            UnhealthyThresholdCount=3,
+            # Health check healthy threshold and unhealthy
+            # threshold must be the same for target groups with the UDP protocol
+            UnhealthyThresholdCount=2 if protocol == 'udp' else 3,
             **target_group_config
         )
 
@@ -605,10 +609,30 @@ service is down',
                 Ref(self.public_subnet1),
                 Ref(self.public_subnet2)
             ]
+        subnet_info = {}
+        if protocol == 'http':
+            subnet_info['Subnets'] = alb_subnets
+        elif protocol == 'udp':
+            subnet_mappings = []
+            if 'eip_allocaltion_id_1' in elb_config:
+                subnet_mappings.append(
+                    SubnetMapping(SubnetId=alb_subnets[0], AllocationId=elb_config['eip_allocaltion_id1']))
+            else:
+                subnet_mappings.append(
+                    SubnetMapping(SubnetId=alb_subnets[0]))
+
+            if 'eip_allocaltion_id_2' in elb_config:
+                subnet_mappings.append(
+                    SubnetMapping(SubnetId=alb_subnets[1], AllocationId=elb_config['eip_allocaltion_id2']))
+            else:
+                subnet_mappings.append(
+                    SubnetMapping(SubnetId=alb_subnets[1]))
+
+            subnet_info['SubnetMappings'] = subnet_mappings
+
         alb_name = alb_name[:32]
         elb = ELBv2(
             'ALB' + service_name,
-            Subnets=alb_subnets,
             SecurityGroups=[
                 self.alb_security_group,
                 Ref(svc_alb_sg)
@@ -618,7 +642,8 @@ service is down',
                 {'Value': alb_name, 'Key': 'Name'}
             ],
             Scheme=scheme,
-            Type='application' if 'http_interface' in config else 'network'
+            Type='application' if 'http_interface' in config else 'network',
+            **subnet_info
         )
 
         self.template.add_resource(elb)
