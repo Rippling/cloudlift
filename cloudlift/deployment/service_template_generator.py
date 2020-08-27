@@ -614,14 +614,14 @@ service is down',
             subnet_info['Subnets'] = alb_subnets
         elif protocol == 'udp':
             subnet_mappings = []
-            if 'eip_allocaltion_id_1' in elb_config:
+            if 'eip_allocaltion_id1' in elb_config:
                 subnet_mappings.append(
                     SubnetMapping(SubnetId=alb_subnets[0], AllocationId=elb_config['eip_allocaltion_id1']))
             else:
                 subnet_mappings.append(
                     SubnetMapping(SubnetId=alb_subnets[0]))
 
-            if 'eip_allocaltion_id_2' in elb_config:
+            if 'eip_allocaltion_id2' in elb_config:
                 subnet_mappings.append(
                     SubnetMapping(SubnetId=alb_subnets[1], AllocationId=elb_config['eip_allocaltion_id2']))
             else:
