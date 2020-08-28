@@ -15,8 +15,10 @@ from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
                              NetworkConfiguration, PlacementStrategy,
                              PortMapping, Service, TaskDefinition, PlacementConstraint, SystemControl,
                              HealthCheck)
-from troposphere.elasticloadbalancingv2 import Action, Certificate, Listener, SubnetMapping
+from troposphere.elasticloadbalancingv2 import SubnetMapping
 from troposphere.elasticloadbalancingv2 import LoadBalancer as NLBLoadBalancer
+from troposphere.elasticloadbalancingv2 import (Action, Certificate, Listener, ListenerRule, Condition,
+                                                PathPatternConfig)
 from troposphere.elasticloadbalancingv2 import LoadBalancer as ALBLoadBalancer
 from troposphere.elasticloadbalancingv2 import (Matcher, RedirectConfig,
                                                 TargetGroup,
@@ -25,6 +27,7 @@ from troposphere.iam import Role
 
 from cloudlift.config import DecimalEncoder
 from cloudlift.config import get_account_id
+from cloudlift.config.region import get_environment_level_alb_listener, get_client_for
 from cloudlift.deployment.deployer import build_config, container_name
 from cloudlift.deployment.service_information_fetcher import ServiceInformationFetcher
 from cloudlift.deployment.template_generator import TemplateGenerator
@@ -337,10 +340,19 @@ service is down',
             )
             self.template.add_resource(svc)
         elif 'http_interface' in config:
+            alb_config = config['http_interface'].get('alb', {})
+
             lb, target_group_name = self._add_ecs_lb(cd, service_name, config, launch_type)
-            alb_enabled = 'alb_enabled' in config['http_interface'] and config['http_interface']['alb_enabled']
-            if alb_enabled:
-                alb, service_listener, alb_sg = self._add_alb(service_name, config, target_group_name)
+            alb_enabled = False
+            if alb_config:
+                use_environment_alb = alb_config.get('use_environment_alb', False)
+                if use_environment_alb:
+                    subpath = alb_config.get('path')
+                    env_alb_listener_arn = get_environment_level_alb_listener(self.env)
+                    self._add_to_alb_listener_in_subpath(service_name, env_alb_listener_arn, subpath, target_group_name)
+                else:
+                    alb_enabled = True
+                    alb, service_listener, alb_sg = self._add_alb(service_name, config, target_group_name)
 
             if launch_type == self.LAUNCH_TYPE_FARGATE:
                 # if launch type is ec2, then services inherit the ec2 instance security group
@@ -999,6 +1011,49 @@ building this service",
                 self.environment_stack['Outputs']
             )
         )[0]['OutputValue']
+
+    def _get_free_priority_from_listener(self, listener_arn):
+        rules = []
+        elb_client = get_client_for('elbv2', self.env)
+        response = elb_client.describe_rules(
+            ListenerArn=listener_arn,
+        )
+
+        rules.extend(response.get('Rules', []))
+
+        while 'NextMarker' in response:
+            response = elb_client.describe_rules(
+                Marker=response['NextMarker'],
+            )
+            rules.extend(response.get('Rules', []))
+
+        priorities = set(rule['Priority'] for rule in rules)
+        for i in range(1, 50001):
+            if i not in priorities:
+                return i
+        return -1
+
+    def _add_to_alb_listener_in_subpath(self, service_name, alb_listener_arn, subpath, target_group):
+        priority = self._get_free_priority_from_listener(alb_listener_arn)
+        self.template.add_resource(
+            ListenerRule(
+                service_name + "ListenerRule",
+                ListenerArn=alb_listener_arn,
+                Priority=priority,
+                Conditions=[
+                    Condition(
+                        Field="path-pattern",
+                        PathPatternConfig=PathPatternConfig(
+                            Values=[subpath],
+                        ),
+                    ),
+                ],
+                Actions=[Action(
+                    Type="forward",
+                    TargetGroupArn=Ref(target_group),
+                )]
+            )
+        )
 
     def _get_desired_task_count_for_service(self, service_name):
         if service_name in self.desired_counts:
