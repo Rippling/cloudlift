@@ -44,8 +44,8 @@ class ServiceInformationFetcher(object):
 
     def get_current_version(self):
         commit_sha = self._fetch_current_task_definition_tag()
-        if commit_sha is None or commit_sha == 'dirty':
-            log_warning("Currently deployed tag could not be found or is dirty,\
+        if commit_sha is None:
+            log_warning("Currently deployed tag could not be found,\
 resetting to master")
             commit_sha = "master"
         return commit_sha

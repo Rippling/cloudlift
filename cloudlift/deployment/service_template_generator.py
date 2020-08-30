@@ -12,7 +12,7 @@ from troposphere.ec2 import SecurityGroup
 from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
                              DeploymentConfiguration, Environment,
                              LoadBalancer, LogConfiguration,
-                             NetworkConfiguration, PlacementStrategy,
+                             NetworkConfiguration, PlacementStrategy, MountPoint,
                              PortMapping, Service, TaskDefinition, PlacementConstraint, SystemControl,
                              HealthCheck)
 from troposphere.elasticloadbalancingv2 import Action, Certificate, Listener
@@ -20,6 +20,7 @@ from troposphere.elasticloadbalancingv2 import LoadBalancer as ALBLoadBalancer
 from troposphere.elasticloadbalancingv2 import (Matcher, RedirectConfig,
                                                 TargetGroup,
                                                 TargetGroupAttribute)
+from troposphere.efs import FileSystem, MountTarget
 from troposphere.iam import Role
 
 from cloudlift.config import DecimalEncoder
@@ -27,6 +28,8 @@ from cloudlift.config import get_account_id
 from cloudlift.deployment.deployer import build_config, container_name
 from cloudlift.deployment.service_information_fetcher import ServiceInformationFetcher
 from cloudlift.deployment.template_generator import TemplateGenerator
+from cloudlift.deployment.efs import EfsCapableVolume, EFSVolumeConfiguration
+from cloudlift.deployment.cluster_information_fetcher import fetch_ec2_hosts_sg
 
 
 class ServiceTemplateGenerator(TemplateGenerator):
@@ -229,6 +232,10 @@ service is down',
             for sidecar in config['sidecars']:
                 links.append(container_name(sidecar.get('name')))
             container_definition_arguments['Links'] = links
+        efs_name = service_name + "Disk"
+        container_definition_arguments['MountPoints'] = [MountPoint(ContainerPath='/mnt/efs-1/',
+                                                                    SourceVolume=efs_name,
+                                                                    ReadOnly=False)]
 
         cd = ContainerDefinition(**container_definition_arguments)
         container_definitions = [cd]
@@ -238,7 +245,8 @@ service is down',
                 container_definitions.append(
                     self._gen_container_definitions_for_sidecar(sidecar,
                                                                 log_config,
-                                                                container_configurations.get(sidecar_container_name, {})),
+                                                                container_configurations.get(sidecar_container_name,
+                                                                                             {})),
                 )
 
         task_role = self.template.add_resource(Role(
@@ -269,6 +277,7 @@ service is down',
                 Type=constraint['type'], Expression=constraint['expression'])
             for constraint in config['placement_constraints']
         ] if 'placement_constraints' in config else []
+        efs_disk = self._add_efs_disk(efs_name)
 
         td = TaskDefinition(
             service_name + "TaskDefinition",
@@ -276,6 +285,10 @@ service is down',
             ContainerDefinitions=container_definitions,
             TaskRoleArn=Ref(task_role),
             PlacementConstraints=placement_constraints,
+            Volumes=[EfsCapableVolume(
+                Name=efs_name,
+                EFSVolumeConfiguration=EFSVolumeConfiguration(FilesystemId=Ref(efs_disk))
+            )],
             **launch_type_td
         )
 
@@ -547,6 +560,32 @@ service is down',
         self._add_alb_alarms(service_name, alb)
         return alb, service_listener, svc_alb_sg
 
+    def _add_efs_disk(self, name):
+        disk = FileSystem(name)
+        self.template.add_resource(disk)
+        efs_sg = SecurityGroup(pascalcase(name + "SG"),
+                               GroupName=name + "disk-sg",
+                               GroupDescription="SG that allows the EFS to be nfs mounter by cluster EC2 hosts",
+                               VpcId=Ref(self.vpc),
+                               SecurityGroupIngress=[{
+                                   'IpProtocol': 'TCP',
+                                   'ToPort': 2049,  # NFS port
+                                   'FromPort': 2049,
+                                   'SourceSecurityGroupId': fetch_ec2_hosts_sg(self.env)
+                               }])
+        self.template.add_resource(efs_sg)
+        self.template.add_resource(
+            MountTarget(pascalcase(name + "MountTarget1"),
+                        FileSystemId=Ref(disk),
+                        SubnetId=self._find_env_output("PrivateSubnet1"),
+                        SecurityGroups=[Ref(efs_sg)]))
+        self.template.add_resource(
+            MountTarget(pascalcase(name + "MountTarget2"),
+                        FileSystemId=Ref(disk),
+                        SubnetId=self._find_env_output("PrivateSubnet2"),
+                        SecurityGroups=[Ref(efs_sg)]))
+        return disk
+
     def _add_service_listener(self, service_name, target_group_action,
                               alb, internal):
         ssl_cert = Certificate(CertificateArn=self.ssl_certificate_arn)
@@ -761,24 +800,14 @@ building this service",
             "PrivateSubnet1",
             Description='',
             Type="AWS::EC2::Subnet::Id",
-            Default=list(
-                filter(
-                    lambda x: x['OutputKey'] == "PrivateSubnet1",
-                    self.environment_stack['Outputs']
-                )
-            )[0]['OutputValue']
+            Default=self._find_env_output("PrivateSubnet1")
         )
         self.template.add_parameter(self.private_subnet1)
         self.private_subnet2 = Parameter(
             "PrivateSubnet2",
             Description='',
             Type="AWS::EC2::Subnet::Id",
-            Default=list(
-                filter(
-                    lambda x: x['OutputKey'] == "PrivateSubnet2",
-                    self.environment_stack['Outputs']
-                )
-            )[0]['OutputValue']
+            Default=self._find_env_output("PrivateSubnet2")
         )
         self.template.add_parameter(self.private_subnet2)
         self.template.add_parameter(Parameter(
@@ -805,6 +834,14 @@ building this service",
         return str(self.account_id) + ".dkr.ecr." + \
                self.region + ".amazonaws.com/" + \
                self.repo_name
+
+    def _find_env_output(self, output_key):
+        return list(
+            filter(
+                lambda x: x['OutputKey'] == output_key,
+                self.environment_stack['Outputs']
+            )
+        )[0]['OutputValue']
 
     @property
     def account_id(self):
