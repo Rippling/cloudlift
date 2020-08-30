@@ -200,7 +200,11 @@ class TestServiceTemplateGenerator(TestCase):
         mock_service_configuration = MagicMock(spec=ServiceConfiguration, service_name=application_name,
                                                environment=environment)
         mock_service_configuration.get_config.return_value = mocked_udp_service_config()
-        mock_build_config.return_value = [("PORT", "80")]
+
+        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
+            return {ecs_service_name: [("PORT", "80")]}
+
+        mock_build_config.side_effect = mock_build_config_impl
         mock_get_account_id.return_value = "12537612"
         mock_region_service.get_region_for_environment.return_value = "us-west-2"
 
@@ -209,7 +213,6 @@ class TestServiceTemplateGenerator(TestCase):
         generated_template = template_generator.generate_service()
 
         template_file_path = os.path.join(os.path.dirname(__file__), '../templates/expected_udp_service_template.yml')
-        print(generated_template)
         with(open(template_file_path)) as expected_template_file:
             assert to_json(''.join(expected_template_file.readlines())) == to_json(generated_template)
 
