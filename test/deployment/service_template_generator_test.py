@@ -240,12 +240,12 @@ class TestServiceTemplateGenerator(TestCase):
         def mock_describe_rules(ListenerArn=None, Marker=None):
             if ListenerArn:
                 return {
-                    'Rules': [{'Priority': 1}, {'Priority': 2}],
+                    'Rules': [{'Priority': '1'}, {'Priority': '2'}],
                     'NextMarker': '/next/marker'
                 }
             if Marker:
                 return {
-                    'Rules': [{'Priority': 3}, {'Priority': 5}]
+                    'Rules': [{'Priority': '3'}, {'Priority': '5'}]
                 }
 
         mock_elbv2_client.describe_rules.side_effect = mock_describe_rules

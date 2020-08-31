@@ -1067,7 +1067,7 @@ building this service",
 
         priorities = set(rule['Priority'] for rule in rules)
         for i in range(1, 50001):
-            if i not in priorities:
+            if str(i) not in priorities:
                 return i
         return -1
 
