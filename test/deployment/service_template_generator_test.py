@@ -211,7 +211,6 @@ class TestServiceTemplateGenerator(TestCase):
         template_generator = ServiceTemplateGenerator(mock_service_configuration, self._get_env_stack())
         template_generator.env_sample_file_path = './test/templates/test_env.sample'
         generated_template = template_generator.generate_service()
-
         template_file_path = os.path.join(os.path.dirname(__file__), '../templates/expected_udp_service_template.yml')
         with(open(template_file_path)) as expected_template_file:
             assert to_json(''.join(expected_template_file.readlines())) == to_json(generated_template)
