@@ -136,7 +136,7 @@ Resources:
           Essential: 'true'
           Image: 12537612.dkr.ecr.us-west-2.amazonaws.com/dummy-repo:1.1.1
           Links:
-            - 'redisContainer'
+            - 'redisContainer:redis'
           LogConfiguration:
             LogDriver: awslogs
             Options:

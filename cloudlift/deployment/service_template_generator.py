@@ -240,7 +240,10 @@ service is down',
         if 'sidecars' in config:
             links = []
             for sidecar in config['sidecars']:
-                links.append(container_name(sidecar.get('name')))
+                sidecar_name = sidecar.get('name')
+                links.append(
+                    "{}:{}".format(container_name(sidecar_name), sidecar_name)
+                )
             container_definition_arguments['Links'] = links
 
         cd = ContainerDefinition(**container_definition_arguments)

@@ -97,7 +97,7 @@ def test_cloudlift_can_deploy_to_ec2(keep_resources):
     )
     ssm_client.put_parameter(
         Name=f"/{environment_name}/{service_name}/REDIS_HOST",
-        Value="redisContainer",
+        Value="redis",
         Type="SecureString",
         KeyId='alias/aws/ssm',
         Overwrite=True
