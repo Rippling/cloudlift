@@ -315,32 +315,8 @@ service is down',
             nlb_enabled = 'nlb_enabled' in config['udp_interface'] and config['udp_interface']['nlb_enabled']
             if nlb_enabled:
                 elb, service_listener, nlb_sg = self._add_alb(service_name, config, target_group_name)
+            service_security_group = nlb_sg
 
-            if launch_type == self.LAUNCH_TYPE_FARGATE:
-                # if launch type is ec2, then services inherit the ec2 instance security group
-                # otherwise, we need to specify a security group for the service
-                service_security_group = SecurityGroup(
-                    pascalcase("FargateService" + self.env + service_name),
-                    GroupName=pascalcase("FargateService" + self.env + service_name),
-                    SecurityGroupIngress=[{
-                        'IpProtocol': 'UDP',
-                        'SourceSecurityGroupId': Ref(nlb_sg),
-                        'ToPort': int(config['udp_interface']['container_port']),
-                        'FromPort': int(config['udp_interface']['container_port']),
-                    },
-                        {
-                            'IpProtocol': 'TCP',
-                            'SourceSecurityGroupId': Ref(nlb_sg),
-                            'ToPort': int(config['udp_interface']['health_check_port']),
-                            'FromPort': int(config['udp_interface']['health_check_port']),
-                        }
-                    ],
-                    VpcId=Ref(self.vpc),
-                    GroupDescription=pascalcase("FargateService" + self.env + service_name)
-                )
-                self.template.add_resource(service_security_group)
-            else:
-                service_security_group = nlb_sg
 
             launch_type_svc = {
                 'NetworkConfiguration': NetworkConfiguration(
