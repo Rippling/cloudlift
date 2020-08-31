@@ -103,6 +103,30 @@ def mocked_fargate_service_config():
     }
 
 
+def mocked_udp_fargate_service_config():
+    return {
+        "cloudlift_version": 'test-version',
+        "notifications_arn": "some",
+        "services": {
+            "DummyFargateService": {
+                "command": None,
+                "fargate": {
+                    "cpu": 256,
+                    "memory": 512
+                },
+                "udp_interface": {
+                    "container_port": 80,
+                    "internal": False,
+                    "restrict_access_to": [
+                        "0.0.0.0/0"
+                    ]
+                },
+                "memory_reservation": 512
+            }
+        }
+    }
+
+
 class TestServiceTemplateGenerator(TestCase):
 
     @patch('cloudlift.config.service_configuration.get_resource_for')
@@ -185,6 +209,41 @@ class TestServiceTemplateGenerator(TestCase):
                                           '../templates/expected_fargate_service_template.yml')
         with(open(template_file_path)) as expected_template_file:
             assert to_json(''.join(expected_template_file.readlines())) == to_json(generated_template)
+
+    @patch('cloudlift.deployment.service_template_generator.ServiceInformationFetcher')
+    @patch('cloudlift.deployment.service_template_generator.build_config')
+    @patch('cloudlift.deployment.service_template_generator.get_account_id')
+    @patch('cloudlift.deployment.template_generator.region_service')
+    @patch('cloudlift.deployment.service_template_generator.boto3')
+    def test_generate_fargate_service_should_fail_for_udp_interface(self, mock_boto, mock_region_service,
+                                                                    mock_get_account_id, mock_build_config,
+                                                                    mockServiceInformationFetcher):
+        environment = 'staging'
+        application_name = 'dummyFargate'
+        mock_service_info_inst = mockServiceInformationFetcher.return_value
+        mock_service_info_inst.get_current_version.return_value = "1.1.1"
+        mock_service_info_inst.fetch_current_desired_count.return_value = {"DummyFargateRunSidekiqsh": 51}
+        mock_service_configuration = MagicMock(spec=ServiceConfiguration, service_name=application_name,
+                                               environment=environment)
+        mock_service_configuration.get_config.return_value = mocked_udp_fargate_service_config()
+
+        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
+            return {ecs_service_name: [("PORT", "80")]}
+
+        mock_build_config.side_effect = mock_build_config_impl
+
+        mock_get_account_id.return_value = "12537612"
+        mock_region_service.get_region_for_environment.return_value = "us-west-2"
+        mock_iam_role = MagicMock(arn="arn:aws:iam::12537612:role/DummyExecutionRole")
+        mock_boto.resource.return_value = MagicMock()
+        mock_boto.resource.return_value.Role.return_value = mock_iam_role
+
+        template_generator = ServiceTemplateGenerator(mock_service_configuration, self._get_env_stack())
+        template_generator.env_sample_file_path = './test/templates/test_env.sample'
+        with self.assertRaises(NotImplementedError) as context:
+            template_generator.generate_service()
+            self.assertTrue(
+                'udp interface not yet implemented in fargate type, please use ec2 type' in context.exception)
 
     @patch('cloudlift.deployment.service_template_generator.ServiceInformationFetcher')
     @patch('cloudlift.deployment.service_template_generator.build_config')

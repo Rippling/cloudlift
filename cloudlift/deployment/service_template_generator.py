@@ -208,6 +208,8 @@ service is down',
                                                                 system_control in config['system_controls']]
 
         if 'udp_interface' in config:
+            if launch_type == self.LAUNCH_TYPE_FARGATE:
+                raise NotImplementedError('udp interface not yet implemented in fargate type, please use ec2 type')
             container_definition_arguments['PortMappings'] = [
                 PortMapping(
                     ContainerPort=int(
