@@ -26,7 +26,9 @@ def mocked_service_config(cls, *args, **kwargs):
                     {"name": "redis", "image": "redis", "memory_reservation": 256}
                 ],
                 "http_interface": {
-                    "alb_enabled": "true",
+                    "alb": {
+                        "mode": "new"
+                    },
                     "container_port": 80,
                     "internal": False,
                     "restrict_access_to": [

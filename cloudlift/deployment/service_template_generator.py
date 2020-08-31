@@ -18,7 +18,7 @@ from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
 from troposphere.elasticloadbalancingv2 import SubnetMapping
 from troposphere.elasticloadbalancingv2 import LoadBalancer as NLBLoadBalancer
 from troposphere.elasticloadbalancingv2 import (Action, Certificate, Listener, ListenerRule, Condition,
-                                                PathPatternConfig)
+                                                PathPatternConfig, HostHeaderConfig)
 from troposphere.elasticloadbalancingv2 import LoadBalancer as ALBLoadBalancer
 from troposphere.elasticloadbalancingv2 import (Matcher, RedirectConfig,
                                                 TargetGroup,
@@ -345,12 +345,10 @@ service is down',
             lb, target_group_name = self._add_ecs_lb(cd, service_name, config, launch_type)
             alb_enabled = False
             if alb_config:
-                use_environment_alb = alb_config.get('use_environment_alb', False)
-                if use_environment_alb:
-                    subpath = alb_config.get('path')
-                    env_alb_listener_arn = get_environment_level_alb_listener(self.env)
-                    self._add_to_alb_listener_in_subpath(service_name, env_alb_listener_arn, subpath, target_group_name)
-                else:
+                mode = alb_config['mode']
+                if mode == 'existing':
+                    self.attach_to_existing_listener(alb_config, service_name, target_group_name)
+                elif mode == 'new':
                     alb_enabled = True
                     alb, service_listener, alb_sg = self._add_alb(service_name, config, target_group_name)
 
@@ -472,6 +470,43 @@ service is down',
             )
             self.template.add_resource(svc)
         self._add_service_alarms(svc)
+
+    def attach_to_existing_listener(self, alb_config, service_name, target_group_name):
+        conditions = []
+        if 'host' in alb_config:
+            conditions.append(
+                Condition(
+                    Field="host-header",
+                    HostHeaderConfig=HostHeaderConfig(
+                        Values=[alb_config['host']],
+                    ),
+                )
+            )
+        if 'path' in alb_config:
+            conditions.append(
+                Condition(
+                    Field="path-pattern",
+                    PathPatternConfig=PathPatternConfig(
+                        Values=[alb_config['path']],
+                    ),
+                )
+            )
+        listener_arn = alb_config['listener_arn'] if 'listener_arn' in alb_config \
+            else get_environment_level_alb_listener(self.env)
+        priority = int(alb_config['priority']) if 'priority' in alb_config \
+            else self._get_free_priority_from_listener(listener_arn)
+        self.template.add_resource(
+            ListenerRule(
+                service_name + "ListenerRule",
+                ListenerArn=listener_arn,
+                Priority=priority,
+                Conditions=conditions,
+                Actions=[Action(
+                    Type="forward",
+                    TargetGroupArn=Ref(target_group_name),
+                )]
+            )
+        )
 
     def _gen_container_definitions_for_sidecar(self, sidecar, log_config, env_config):
         cd = {}
@@ -1035,25 +1070,6 @@ building this service",
 
     def _add_to_alb_listener_in_subpath(self, service_name, alb_listener_arn, subpath, target_group):
         priority = self._get_free_priority_from_listener(alb_listener_arn)
-        self.template.add_resource(
-            ListenerRule(
-                service_name + "ListenerRule",
-                ListenerArn=alb_listener_arn,
-                Priority=priority,
-                Conditions=[
-                    Condition(
-                        Field="path-pattern",
-                        PathPatternConfig=PathPatternConfig(
-                            Values=[subpath],
-                        ),
-                    ),
-                ],
-                Actions=[Action(
-                    Type="forward",
-                    TargetGroupArn=Ref(target_group),
-                )]
-            )
-        )
 
     def _get_desired_task_count_for_service(self, service_name):
         if service_name in self.desired_counts:

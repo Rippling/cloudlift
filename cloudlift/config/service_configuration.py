@@ -151,8 +151,29 @@ class ServiceConfiguration(object):
                         "internal": {
                             "type": "boolean"
                         },
-                        "alb_enabled": {
-                            "type": "boolean",
+                        "alb": {
+                            "type": "object",
+                            "properties": {
+                                "mode": {
+                                    "type": "string",
+                                    "enum": ["new", "existing"],
+                                },
+                                "listener_arn": {
+                                    "type": "string"
+                                },
+                                "path": {
+                                    "type": "string"
+                                },
+                                "host": {
+                                    "type": "string"
+                                },
+                                "priority": {
+                                    "type": "number"
+                                }
+                            },
+                            "required": [
+                                "mode"
+                            ]
                         },
                         "restrict_access_to": {
                             "type": "array",
@@ -171,8 +192,7 @@ class ServiceConfiguration(object):
                     "required": [
                         "internal",
                         "restrict_access_to",
-                        "container_port",
-                        "alb_enabled"
+                        "container_port"
                     ]
                 },
                 "memory_reservation": {
@@ -336,7 +356,9 @@ class ServiceConfiguration(object):
                 pascalcase(self.service_name): {
                     u'http_interface': {
                         u'internal': False,
-                        u'alb_enabled': True,
+                        u'alb': {
+                            u'mode': 'new',
+                        },
                         u'restrict_access_to': [u'0.0.0.0/0'],
                         u'container_port': 80,
                         u'health_check_path': u'/elb-check'

@@ -3,11 +3,18 @@ Outputs:
     Description: Options used with cloudlift when building this service
     Value: '{"cloudlift_version": "test-version", "notifications_arn": "some", "services":
       {"Dummy": {"memory_reservation": 1000, "command": null, "http_interface": {"internal":
-      false, "alb": {"use_environment_alb": true, "path": "/dummy-path"}, "container_port": 7003,
-      "restrict_access_to": ["0.0.0.0/0"], "health_check_path": "/elb-check"}}}}'
+      false, "alb": {"mode": "existing", "host": "abc.xyz.com"}, "container_port": 7003,
+      "restrict_access_to": ["0.0.0.0/0"], "health_check_path": "/elb-check"}}, "DummyWithCustomListener":
+      {"memory_reservation": 1000, "command": null, "http_interface": {"internal": false, "alb":
+      {"mode": "existing", "listener_arn": "custom_listener_arn", "path": "/custom-path",
+       "priority": 100}, "container_port": 7003, "restrict_access_to": ["0.0.0.0/0"],
+        "health_check_path": "/elb-check"}}}}'
   DummyEcsServiceName:
     Description: The ECS name which needs to be entered
     Value: !GetAtt 'Dummy.Name'
+  DummyWithCustomListenerEcsServiceName:
+    Description: The ECS name which needs to be entered
+    Value: !GetAtt 'DummyWithCustomListener.Name'
   StackId:
     Description: The unique ID of the stack. To be supplied to circle CI environment
       variables to validate during deployment.
@@ -69,10 +76,10 @@ Resources:
         - TargetGroupArn: !Ref 'TargetGroupDummy'
           Type: 'forward'
       Conditions:
-        - Field: path-pattern
-          PathPatternConfig:
+        - Field: host-header
+          HostHeaderConfig:
             Values:
-              - '/dummy-path'
+              - 'abc.xyz.com'
       ListenerArn: listenerARN1234
       Priority: 4
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -109,6 +116,71 @@ Resources:
       Family: DummyFamily
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyRole'
+    Type: AWS::ECS::TaskDefinition
+  DummyWithCustomListener:
+    Properties:
+      Cluster: cluster-staging
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DesiredCount: 0
+      LaunchType: EC2
+      LoadBalancers:
+        - ContainerName: DummyWithCustomListenerContainer
+          ContainerPort: 7003
+          TargetGroupArn: !Ref 'TargetGroupDummyWithCustomListener'
+      PlacementStrategies:
+        - Field: attribute:ecs.availability-zone
+          Type: spread
+      Role: !Ref 'ECSServiceRole'
+      TaskDefinition: !Ref 'DummyWithCustomListenerTaskDefinition'
+    Type: AWS::ECS::Service
+  DummyWithCustomListenerListenerRule:
+    Properties:
+      Actions:
+        - TargetGroupArn: !Ref 'TargetGroupDummyWithCustomListener'
+          Type: 'forward'
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - '/custom-path'
+      ListenerArn: custom_listener_arn
+      Priority: 100
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+  DummyWithCustomListenerRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+    Type: AWS::IAM::Role
+  DummyWithCustomListenerTaskDefinition:
+    Properties:
+      ContainerDefinitions:
+        - Cpu: 0
+          Environment:
+            - Name: PORT
+              Value: '80'
+          Essential: 'true'
+          Image: 12537612.dkr.ecr.us-west-2.amazonaws.com/dummy-repo:1.1.1
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: staging-logs
+              awslogs-region: us-west-2
+              awslogs-stream-prefix: DummyWithCustomListener
+          MemoryReservation: 1000
+          Name: DummyWithCustomListenerContainer
+          PortMappings:
+            - ContainerPort: 7003
+      Family: DummyWithCustomListenerFamily
+      PlacementConstraints: []
+      TaskRoleArn: !Ref 'DummyWithCustomListenerRole'
     Type: AWS::ECS::TaskDefinition
   ECSServiceRole:
     Properties:
@@ -147,6 +219,28 @@ Resources:
       Threshold: '80'
       TreatMissingData: breaching
     Type: AWS::CloudWatch::Alarm
+  EcsHighCPUAlarmDummyWithCustomListener:
+    Properties:
+      AlarmActions:
+        - !Ref 'NotificationSnsArn'
+      AlarmDescription: Alarm if CPU too high or metric disappears indicating instance
+        is down
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: cluster-staging
+        - Name: ServiceName
+          Value: !GetAtt 'DummyWithCustomListener.Name'
+      EvaluationPeriods: 1
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      OKActions:
+        - !Ref 'NotificationSnsArn'
+      Period: 300
+      Statistic: Average
+      Threshold: '80'
+      TreatMissingData: breaching
+    Type: AWS::CloudWatch::Alarm
   EcsHighMemoryAlarmDummy:
     Properties:
       AlarmActions:
@@ -159,6 +253,28 @@ Resources:
           Value: cluster-staging
         - Name: ServiceName
           Value: !GetAtt 'Dummy.Name'
+      EvaluationPeriods: 1
+      MetricName: MemoryUtilization
+      Namespace: AWS/ECS
+      OKActions:
+        - !Ref 'NotificationSnsArn'
+      Period: 300
+      Statistic: Average
+      Threshold: '80'
+      TreatMissingData: breaching
+    Type: AWS::CloudWatch::Alarm
+  EcsHighMemoryAlarmDummyWithCustomListener:
+    Properties:
+      AlarmActions:
+        - !Ref 'NotificationSnsArn'
+      AlarmDescription: Alarm if memory too high or metric disappears indicating instance
+        is down
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: cluster-staging
+        - Name: ServiceName
+          Value: !GetAtt 'DummyWithCustomListener.Name'
       EvaluationPeriods: 1
       MetricName: MemoryUtilization
       Namespace: AWS/ECS
@@ -191,6 +307,28 @@ Resources:
       Threshold: '1'
       TreatMissingData: breaching
     Type: AWS::CloudWatch::Alarm
+  EcsNoRunningTasksAlarmDummyWithCustomListener:
+    Properties:
+      AlarmActions:
+        - !Ref 'NotificationSnsArn'
+      AlarmDescription: Alarm if the task count goes to zero, denoting service is
+        down
+      ComparisonOperator: LessThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: cluster-staging
+        - Name: ServiceName
+          Value: !GetAtt 'DummyWithCustomListener.Name'
+      EvaluationPeriods: 1
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      OKActions:
+        - !Ref 'NotificationSnsArn'
+      Period: 60
+      Statistic: SampleCount
+      Threshold: '1'
+      TreatMissingData: breaching
+    Type: AWS::CloudWatch::Alarm
   FailedCloudliftDeploymentsDummy:
     Properties:
       AlarmActions:
@@ -212,7 +350,44 @@ Resources:
       Threshold: '0'
       TreatMissingData: notBreaching
     Type: AWS::CloudWatch::Alarm
+  FailedCloudliftDeploymentsDummyWithCustomListener:
+    Properties:
+      AlarmActions:
+        - !Ref 'NotificationSnsArn'
+      AlarmDescription: Cloudlift deployment timed out
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: cluster-staging
+        - Name: ServiceName
+          Value: !GetAtt 'DummyWithCustomListener.Name'
+      EvaluationPeriods: 1
+      MetricName: FailedCloudliftDeployments
+      Namespace: ECS/DeploymentMetrics
+      OKActions:
+        - !Ref 'NotificationSnsArn'
+      Period: 60
+      Statistic: Average
+      Threshold: '0'
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm
   TargetGroupDummy:
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: /elb-check
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: 200-399
+      Port: 7003
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: '30'
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref 'VPC'
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  TargetGroupDummyWithCustomListener:
     Properties:
       HealthCheckIntervalSeconds: 30
       HealthCheckPath: /elb-check

@@ -199,14 +199,30 @@ class TestServiceTemplateGenerator(TestCase):
                     "http_interface": {
                         "internal": False,
                         "alb": {
-                            "use_environment_alb": True,
-                            "path": "/dummy-path"
+                            "mode": "existing",
+                            "host": "abc.xyz.com"
                         },
                         "container_port": Decimal(7003),
                         "restrict_access_to": ["0.0.0.0/0"],
                         "health_check_path": "/elb-check"
                     }
-                }
+                },
+                "DummyWithCustomListener": {
+                    "memory_reservation": Decimal(1000),
+                    "command": None,
+                    "http_interface": {
+                        "internal": False,
+                        "alb": {
+                            "mode": "existing",
+                            "listener_arn": "custom_listener_arn",
+                            "path": "/custom-path",
+                            "priority": 100,
+                        },
+                        "container_port": Decimal(7003),
+                        "restrict_access_to": ["0.0.0.0/0"],
+                        "health_check_path": "/elb-check"
+                    }
+                },
             }
         }
 

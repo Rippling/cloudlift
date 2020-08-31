@@ -129,6 +129,9 @@ This opens the `VISUAL` editor with default config similar to -
           "Test123": {
               "command": null,
               "http_interface": {
+                  "alb": {
+                    "mode": "new"
+                  },
                   "container_port": 80,
                   "internal": false,
                   "restrict_access_to": [
@@ -180,6 +183,49 @@ An example service using `container_health_check`
       },
       "memory_reservation": 100
     }
+  }
+}
+```
+
+**ALB**
+
+`alb` allows us to configure how traffic can be routed to service
+
+- To create a new ALB for the cloudlift service
+
+```json5
+{
+  "alb": {
+    // This creates a new ALB and attaches the target group to it.
+    "mode": "new"
+  }
+}
+```
+
+- To reuse an ALB
+
+```json5
+{
+  "alb": {
+    // Using this means, the ALB is managed outside of this service definition.
+    // We can use this mode to attach the target group to one of the listeners of an existing ALB 
+    "mode": "existing",
+
+    // Use listener_arn to attach the TargetGroup to an existing ALB's listener ARN.
+    // The target group will be added using ListenerRule. Optional.
+    // Default: If this is not specified, the environment level loadbalancer_listener_arn will
+    // be picked up. 
+    "listener_arn": "<listener-arn>", 
+
+    // Use this to specify the priority of the listener rule. Optional.
+    // Default: If this is not specified, a random available priority is used.
+    "priority": 2,
+  
+    // Use this to specify host based routing. Optional.
+    "host": "abc.xyz",
+
+    // Use this to specify path based routing. Optional.
+    "path": "/some-path"
   }
 }
 ```
