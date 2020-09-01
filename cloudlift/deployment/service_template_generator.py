@@ -571,9 +571,7 @@ service is down',
         svc_alb_sg = SecurityGroup(
             re.sub(r'\W+', '', sg_name),
             GroupName=self.env + '-' + service_name,
-            SecurityGroupIngress=self._generate_alb_security_group_ingress(
-                config
-            ),
+            SecurityGroupIngress=self._generate_alb_security_group_ingress(config),
             VpcId=Ref(self.vpc),
             GroupDescription=Sub(service_name + "-alb-sg")
         )
@@ -842,13 +840,13 @@ from load balancer',
             })
         return ingress_rules
 
-    def _generate_nlb_security_group_ingress(self, config):
+    def _generate_nlb_security_group_ingress(self, elb_config):
         ingress_rules = []
-        for access_ip in config['restrict_access_to']:
+        for access_ip in elb_config['restrict_access_to']:
             if access_ip.find('/') == -1:
                 access_ip = access_ip + '/32'
-            port = config['container_port']
-            health_check_port = config['health_check_port']
+            port = elb_config['container_port']
+            health_check_port = elb_config['health_check_port']
             ingress_rules.append({
                 'ToPort': int(port),
                 'IpProtocol': 'UDP',
