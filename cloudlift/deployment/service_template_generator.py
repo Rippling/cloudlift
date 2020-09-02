@@ -732,7 +732,7 @@ service is down',
         )
         self.template.add_resource(service_listener)
 
-        self._add_alb_alarms(service_name, nlb)
+        self._add_nlb_alarms(service_name, nlb)
         return nlb, service_listener, svc_alb_sg
 
     def _add_service_listener(self, service_name, target_group_action,
@@ -778,6 +778,28 @@ service is down',
             )
             self.template.add_resource(http_redirection_listener)
         return service_listener
+
+    def _add_nlb_alarms(self, service_name, nlb):
+        unhealthy_alarm = Alarm(
+            'NlbUnhealthyHostAlarm' + service_name,
+            EvaluationPeriods=1,
+            Dimensions=[
+                MetricDimension(
+                    Name='LoadBalancer',
+                    Value=GetAtt(nlb, 'LoadBalancerFullName')
+                )
+            ],
+            AlarmActions=[Ref(self.notification_sns_arn)],
+            OKActions=[Ref(self.notification_sns_arn)],
+            AlarmDescription='Triggers if any host is marked unhealthy',
+            Namespace='AWS/NetworkELB',
+            Period=60,
+            ComparisonOperator='GreaterThanOrEqualToThreshold',
+            Statistic='Sum',
+            Threshold='1',
+            MetricName='UnHealthyHostCount',
+            TreatMissingData='notBreaching'
+        )
 
     def _add_alb_alarms(self, service_name, alb):
         unhealthy_alarm = Alarm(

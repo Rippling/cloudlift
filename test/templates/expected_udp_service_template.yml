@@ -130,64 +130,6 @@ Resources:
       Threshold: '1'
       TreatMissingData: breaching
     Type: AWS::CloudWatch::Alarm
-  ElbHTTPCodeELB5xxAlarmFreeradiusServer:
-    Properties:
-      AlarmActions:
-        - !Ref 'NotificationSnsArn'
-      AlarmDescription: Triggers if 5xx response originated from load balancer
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      Dimensions:
-        - Name: LoadBalancer
-          Value: !GetAtt 'NLBFreeradiusServer.LoadBalancerFullName'
-      EvaluationPeriods: 1
-      MetricName: HTTPCode_ELB_5XX_Count
-      Namespace: AWS/ApplicationELB
-      OKActions:
-        - !Ref 'NotificationSnsArn'
-      Period: 60
-      Statistic: Sum
-      Threshold: '3'
-      TreatMissingData: notBreaching
-    Type: AWS::CloudWatch::Alarm
-  ElbRejectedConnectionsAlarmFreeradiusServer:
-    Properties:
-      AlarmActions:
-        - !Ref 'NotificationSnsArn'
-      AlarmDescription: Triggers if load balancer has rejected connections because
-        the load balancer had reached its maximum number of connections.
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      Dimensions:
-        - Name: LoadBalancer
-          Value: !GetAtt 'NLBFreeradiusServer.LoadBalancerFullName'
-      EvaluationPeriods: 1
-      MetricName: RejectedConnectionCount
-      Namespace: AWS/ApplicationELB
-      OKActions:
-        - !Ref 'NotificationSnsArn'
-      Period: 60
-      Statistic: Sum
-      Threshold: '1'
-      TreatMissingData: notBreaching
-    Type: AWS::CloudWatch::Alarm
-  ElbUnhealthyHostAlarmFreeradiusServer:
-    Properties:
-      AlarmActions:
-        - !Ref 'NotificationSnsArn'
-      AlarmDescription: Triggers if any host is marked unhealthy
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      Dimensions:
-        - Name: LoadBalancer
-          Value: !GetAtt 'NLBFreeradiusServer.LoadBalancerFullName'
-      EvaluationPeriods: 1
-      MetricName: UnHealthyHostCount
-      Namespace: AWS/ApplicationELB
-      OKActions:
-        - !Ref 'NotificationSnsArn'
-      Period: 60
-      Statistic: Sum
-      Threshold: '1'
-      TreatMissingData: notBreaching
-    Type: AWS::CloudWatch::Alarm
   FailedCloudliftDeploymentsFreeradiusServer:
     Properties:
       AlarmActions:
