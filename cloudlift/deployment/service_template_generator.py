@@ -211,25 +211,10 @@ service is down',
             if launch_type == self.LAUNCH_TYPE_FARGATE:
                 raise NotImplementedError('udp interface not yet implemented in fargate type, please use ec2 type')
             container_definition_arguments['PortMappings'] = [
-                PortMapping(
-                    ContainerPort=int(
-                        config['udp_interface']['container_port']
-                    ),
-                    HostPort=int(
-                        config['udp_interface']['container_port']
-                    ),
-                    Protocol='udp'
-
-                ),
-                PortMapping(
-                    ContainerPort=int(
-                        config['udp_interface']['health_check_port']
-                    ),
-                    HostPort=int(
-                        config['udp_interface']['health_check_port']
-                    ),
-                    Protocol='tcp'
-                )
+                PortMapping(ContainerPort=int(config['udp_interface']['container_port']),
+                            HostPort=int(config['udp_interface']['container_port']), Protocol='udp'),
+                PortMapping(ContainerPort=int(config['udp_interface']['health_check_port']),
+                            HostPort=int(config['udp_interface']['health_check_port']), Protocol='tcp')
             ]
         if config['command'] is not None:
             container_definition_arguments['Command'] = [config['command']]
@@ -263,7 +248,8 @@ service is down',
                 container_definitions.append(
                     self._gen_container_definitions_for_sidecar(sidecar,
                                                                 log_config,
-                                                                container_configurations.get(sidecar_container_name, {})),
+                                                                container_configurations.get(sidecar_container_name,
+                                                                                             {})),
                 )
 
         task_role = self.template.add_resource(Role(
@@ -278,10 +264,8 @@ service is down',
                 ]
             )
         ))
-        if 'udp_interface' in config:
-            launch_type_td = {'NetworkMode': 'awsvpc'}
-        else:
-            launch_type_td = {}
+
+        launch_type_td = {}
         if launch_type == self.LAUNCH_TYPE_FARGATE:
             launch_type_td = {
                 'RequiresCompatibilities': ['FARGATE'],
@@ -290,10 +274,11 @@ service is down',
                 'Cpu': str(config['fargate']['cpu']),
                 'Memory': str(config['fargate']['memory'])
             }
+        if 'udp_interface' in config:
+            launch_type_td['NetworkMode'] = 'awsvpc'
 
         placement_constraints = [
-            PlacementConstraint(
-                Type=constraint['type'], Expression=constraint['expression'])
+            PlacementConstraint(Type=constraint['type'], Expression=constraint['expression'])
             for constraint in config['placement_constraints']
         ] if 'placement_constraints' in config else []
 
@@ -317,20 +302,11 @@ service is down',
             nlb_enabled = 'nlb_enabled' in config['udp_interface'] and config['udp_interface']['nlb_enabled']
             if nlb_enabled:
                 elb, service_listener, nlb_sg = self._add_nlb(service_name, config, target_group_name)
-            service_security_group = nlb_sg
-
-
             launch_type_svc = {
                 'NetworkConfiguration': NetworkConfiguration(
                     AwsvpcConfiguration=AwsvpcConfiguration(
-                        Subnets=[
-                            Ref(self.private_subnet1),
-                            Ref(self.private_subnet2)
-                        ],
-                        SecurityGroups=[
-                            Ref(service_security_group)
-                        ]
-                    )
+                        Subnets=[Ref(self.private_subnet1), Ref(self.private_subnet2)],
+                        SecurityGroups=[Ref(nlb_sg)])
                 )
             }
             if launch_type == self.LAUNCH_TYPE_EC2:
@@ -563,7 +539,6 @@ service is down',
                                'HealthCheckPort': int(elb_config['health_check_port']), 'TargetType': 'ip'}
         service_target_group = TargetGroup(
             target_group_name,
-            HealthyThresholdCount=2,
             HealthCheckIntervalSeconds=30,
             TargetGroupAttributes=[
                 TargetGroupAttribute(
@@ -576,6 +551,7 @@ service is down',
             HealthCheckTimeoutSeconds=10,
             # Health check healthy threshold and unhealthy
             # threshold must be the same for target groups with the UDP protocol
+            HealthyThresholdCount=2,
             UnhealthyThresholdCount=2,
             **target_group_config
         )
@@ -595,9 +571,7 @@ service is down',
         svc_alb_sg = SecurityGroup(
             re.sub(r'\W+', '', sg_name),
             GroupName=self.env + '-' + service_name,
-            SecurityGroupIngress=self._generate_alb_security_group_ingress(
-                config
-            ),
+            SecurityGroupIngress=self._generate_alb_security_group_ingress(config),
             VpcId=Ref(self.vpc),
             GroupDescription=Sub(service_name + "-alb-sg")
         )
@@ -888,13 +862,13 @@ from load balancer',
             })
         return ingress_rules
 
-    def _generate_nlb_security_group_ingress(self, config):
+    def _generate_nlb_security_group_ingress(self, elb_config):
         ingress_rules = []
-        for access_ip in config['restrict_access_to']:
+        for access_ip in elb_config['restrict_access_to']:
             if access_ip.find('/') == -1:
                 access_ip = access_ip + '/32'
-            port = config['container_port']
-            health_check_port = config['health_check_port']
+            port = elb_config['container_port']
+            health_check_port = elb_config['health_check_port']
             ingress_rules.append({
                 'ToPort': int(port),
                 'IpProtocol': 'UDP',
