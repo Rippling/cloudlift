@@ -4,6 +4,7 @@ import json
 
 
 def get_config(config_prefix, env):
-    response = get_client_for('secretsmanager', env).get_secret_value(SecretId=f"${config_prefix}-{env}")
+    response = get_client_for('secretsmanager', env).get_secret_value(SecretId=f"{config_prefix}-{env}")
     log(f"Fetched config from AWS secrets manager. Version: ${response['VersionId']}")
-    return json.loads(response['SecretString'])
+    secret_val = json.loads(response['SecretString'])
+    return {k: f"{response['ARN']}:{k}:{response['VersionId']}" for k in secret_val}
