@@ -18,7 +18,7 @@ from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
 from troposphere.elasticloadbalancingv2 import SubnetMapping
 from troposphere.elasticloadbalancingv2 import LoadBalancer as NLBLoadBalancer
 from troposphere.elasticloadbalancingv2 import (Action, Certificate, Listener, ListenerRule, Condition,
-                                                PathPatternConfig, HostHeaderConfig)
+                                                HostHeaderConfig)
 from troposphere.elasticloadbalancingv2 import LoadBalancer as ALBLoadBalancer
 from troposphere.elasticloadbalancingv2 import (Matcher, RedirectConfig,
                                                 TargetGroup,
@@ -254,6 +254,7 @@ service is down',
                 container_definitions.append(
                     self._gen_container_definitions_for_sidecar(sidecar,
                                                                 log_config,
+                                                                service_name,
                                                                 container_configurations.get(sidecar_container_name,
                                                                                              {})),
                 )
@@ -498,7 +499,7 @@ service is down',
             )
         )
 
-    def _gen_container_definitions_for_sidecar(self, sidecar, log_config, env_config):
+    def _gen_container_definitions_for_sidecar(self, sidecar, log_config, service_name, env_config):
         cd = {}
         if 'command' in sidecar:
             cd['Command'] = sidecar['command']
@@ -510,6 +511,7 @@ service is down',
             Image=sidecar.get('image'),
             LogConfiguration=log_config,
             Essential=False,
+            Links=["{}:{}".format(container_name(service_name), service_name)],
             **cd
         )
 
