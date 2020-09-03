@@ -22,7 +22,8 @@ def get_region_for_environment(environment):
 def get_environment_level_alb_listener(environment):
     env_spec = EnvironmentConfiguration(environment).get_config()[environment]
     if 'loadbalancer_listener_arn' not in env_spec:
-        raise UnrecoverableException('environment level ALB not defined. Please update_environment.')
+        raise UnrecoverableException('environment level ALB not defined. ' +
+                                     'Please run update_environment and set "loadbalancer_listener_arn".')
 
     return env_spec['loadbalancer_listener_arn']
 
