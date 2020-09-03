@@ -158,7 +158,7 @@ class TestServiceTemplateGenerator(TestCase):
         mock_service_configuration.get_config.return_value = mocked_service_config()
 
         def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
-            return {ecs_service_name: [("PORT", "80")]}
+            return {ecs_service_name: [{"Name": "PORT", "Value": "80"}]}
 
         mock_build_config.side_effect = mock_build_config_impl
 
@@ -207,7 +207,7 @@ class TestServiceTemplateGenerator(TestCase):
         }
 
         def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
-            return {ecs_service_name: [("PORT", "80")]}
+            return {ecs_service_name: [{"Name": "PORT", "Value": "80"}]}
 
         mock_build_config.side_effect = mock_build_config_impl
 
@@ -281,7 +281,7 @@ class TestServiceTemplateGenerator(TestCase):
         }
 
         def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
-            return {ecs_service_name: [("PORT", "80")]}
+            return {ecs_service_name: [{"Name": "PORT", "Value": "80"}]}
 
         mock_build_config.side_effect = mock_build_config_impl
 
@@ -336,7 +336,7 @@ class TestServiceTemplateGenerator(TestCase):
         mock_service_configuration.get_config.return_value = mocked_fargate_service_config()
 
         def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
-            return {ecs_service_name: [("PORT", "80")]}
+            return {ecs_service_name: [{"Name": "PORT", "Value": "80"}]}
 
         mock_build_config.side_effect = mock_build_config_impl
 
@@ -373,7 +373,7 @@ class TestServiceTemplateGenerator(TestCase):
         mock_service_configuration.get_config.return_value = mocked_udp_fargate_service_config()
 
         def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
-            return {ecs_service_name: [("PORT", "80")]}
+            return {ecs_service_name: [{"Name": "PORT", "Value": "80"}]}
 
         mock_build_config.side_effect = mock_build_config_impl
 
@@ -406,7 +406,7 @@ class TestServiceTemplateGenerator(TestCase):
         mock_service_configuration.get_config.return_value = mocked_udp_service_config()
 
         def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
-            return {ecs_service_name: [("PORT", "80")]}
+            return {ecs_service_name: [{"Name": "PORT", "Value": "80"}]}
 
         mock_build_config.side_effect = mock_build_config_impl
         mock_get_account_id.return_value = "12537612"

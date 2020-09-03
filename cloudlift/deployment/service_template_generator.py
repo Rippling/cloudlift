@@ -174,16 +174,12 @@ service is down',
 
     def _add_service(self, service_name, config):
         launch_type = self.LAUNCH_TYPE_FARGATE if 'fargate' in config else self.LAUNCH_TYPE_EC2
-        container_configurations = build_config(
-            self.env,
-            self.application_name,
-            self.env_sample_file_path,
-            container_name(service_name),
-        )
+        container_configurations = build_config(self.env, self.application_name, self.env_sample_file_path,
+                                                container_name(service_name))
         log_config = self._gen_log_config(service_name)
         container_definition_arguments = {
             "Environment": [
-                Environment(Name=k, Value=v) for (k, v) in container_configurations[container_name(service_name)]
+                Environment(Name=cfg["Name"], Value=cfg["Value"]) for cfg in container_configurations[container_name(service_name)]
             ],
             "Name": container_name(service_name),
             "Image": self.ecr_image_uri + ':' + self.current_version,
