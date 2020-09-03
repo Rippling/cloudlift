@@ -69,7 +69,7 @@ def deploy_and_wait(deployment, new_task_definition, color, timeout_seconds):
 
 def build_config(env_name, service_name, sample_env_file_path, essential_container_name):
     environment_config = _get_parameter_store_config(service_name, env_name)
-    _validate_config_availability(sample_env_file_path, environment_config)
+    _validate_config_availability(sample_env_file_path, set(environment_config))
     return {essential_container_name: _make_container_defn_env_conf(environment_config)}
 
 
@@ -83,12 +83,12 @@ def _get_parameter_store_config(service_name, env_name):
     return environment_config
 
 
-def _validate_config_availability(sample_env_file_path, environment_config):
+def _validate_config_availability(sample_env_file_path, environment_var_set):
     sample_config = read_config(open(sample_env_file_path).read())
-    missing_actual_config = set(sample_config) - set(environment_config)
+    missing_actual_config = set(sample_config) - environment_var_set
     if missing_actual_config:
         raise UnrecoverableException('There is no config value for the keys ' + str(missing_actual_config))
-    missing_sample_config = set(environment_config) - set(sample_config)
+    missing_sample_config = environment_var_set - set(sample_config)
     if missing_sample_config:
         raise UnrecoverableException('There is no config value for the keys in {} file '.format(sample_env_file_path) +
                                      str(missing_sample_config))
