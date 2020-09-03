@@ -7,7 +7,7 @@ from cloudlift.deployment.deployer import is_deployed, \
     record_deployment_failure_metric, deploy_and_wait, build_config
 from cloudlift.deployment.ecs import EcsService, EcsTaskDefinition
 from cloudlift.exceptions import UnrecoverableException
-
+from cloudlift.deployment.troposphere_extensions import EnvironmentWithValuesFromSupport as EnvironmentX
 
 class TestDeployer(TestCase):
     def test_is_deployed_returning_true_if_desiredCount_equals_runningCount(self):
@@ -235,9 +235,8 @@ def test_create_deployment_timeout_alarm(mock_boto3_client, dt):
 class TestBuildConfig(TestCase):
 
     @patch('builtins.open', mock_open(read_data="PORT=1\nLABEL=test"))
-    @patch('cloudlift.deployment.deployer.glob')
     @patch('cloudlift.deployment.deployer.ParameterStore')
-    def test_successful_build_config_for_the_main_container(self, mock_parameter_store, mock_glob):
+    def test_successful_build_config_for_the_main_container(self, mock_parameter_store):
         env_name = "staging"
         cloudlift_service_name = "Dummy"
         sample_env_file_path = "test-env.sample"
@@ -247,29 +246,20 @@ class TestBuildConfig(TestCase):
         mock_parameter_store.return_value = mock_store
         mock_store.get_existing_config.return_value = ({'PORT': '80', 'LABEL': 'Dummy'}, {})
 
-        mock_glob.return_value = []
-
-        actual_configurations = build_config(
-            env_name,
-            cloudlift_service_name,
-            sample_env_file_path,
-            essential_container_name,
-
-        )
+        actual_configurations = build_config(env_name, cloudlift_service_name, sample_env_file_path,
+                                             essential_container_name)
 
         expected_configurations = {
             "mainServiceContainer": [
-                ("PORT", "80"),
-                ("LABEL", "Dummy")
+                {"Name": "PORT", "Value": "80"},
+                {"Name": "LABEL", "Value": "Dummy"}
             ]
         }
-
         self.assertEqual(expected_configurations, actual_configurations)
 
     @patch('builtins.open', mock_open(read_data="PORT=1\nLABEL=test\nADDITIONAL_CONFIG=true"))
-    @patch('cloudlift.deployment.deployer.glob')
     @patch('cloudlift.deployment.deployer.ParameterStore')
-    def test_failure_build_config_for_if_sample_config_has_additional_keys(self, mock_parameter_store, mock_glob):
+    def test_failure_build_config_for_if_sample_config_has_additional_keys(self, mock_parameter_store):
         env_name = "staging"
         cloudlift_service_name = "Dummy"
         sample_env_file_path = "test-env.sample"
@@ -279,24 +269,16 @@ class TestBuildConfig(TestCase):
         mock_parameter_store.return_value = mock_store
         mock_store.get_existing_config.return_value = ({'PORT': '80', 'LABEL': 'Dummy'}, {})
 
-        mock_glob.return_value = []
-
         with pytest.raises(UnrecoverableException) as pytest_wrapped_e:
-            build_config(
-                env_name,
-                cloudlift_service_name,
-                sample_env_file_path,
-                ecs_service_name,
-            )
+            build_config(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name)
 
         assert pytest_wrapped_e.type == UnrecoverableException
         assert str(pytest_wrapped_e.value) == '"There is no config value for the' \
                                               ' keys {\'ADDITIONAL_CONFIG\'}"'
 
     @patch('builtins.open', mock_open(read_data="PORT=1\nLABEL=test"))
-    @patch('cloudlift.deployment.deployer.glob')
     @patch('cloudlift.deployment.deployer.ParameterStore')
-    def test_failure_build_config_for_if_parameter_store_has_additional_keys(self, mock_parameter_store, mock_glob):
+    def test_failure_build_config_for_if_parameter_store_has_additional_keys(self, mock_parameter_store):
         env_name = "staging"
         cloudlift_service_name = "Dummy"
         sample_env_file_path = "test-env.sample"
@@ -306,15 +288,8 @@ class TestBuildConfig(TestCase):
         mock_parameter_store.return_value = mock_store
         mock_store.get_existing_config.return_value = ({'PORT': '80', 'LABEL': 'Dummy', 'ADDITIONAL_KEYS': 'true'}, {})
 
-        mock_glob.return_value = []
-
         with pytest.raises(UnrecoverableException) as pytest_wrapped_e:
-            build_config(
-                env_name,
-                cloudlift_service_name,
-                sample_env_file_path,
-                ecs_service_name,
-            )
+            build_config(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name)
 
         assert pytest_wrapped_e.type == UnrecoverableException
         assert str(pytest_wrapped_e.value) == '"There is no config value for the keys' \

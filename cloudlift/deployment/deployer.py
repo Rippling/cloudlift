@@ -1,15 +1,14 @@
-from os.path import basename
+from datetime import datetime
 from time import sleep, time
+
+import boto3
+from cloudlift.config import ParameterStore
+from cloudlift.config.logging import log_bold, log_err, log_intent, log_with_color
+from cloudlift.deployment.ecs import DeployAction
 from cloudlift.exceptions import UnrecoverableException
 from colorclass import Color
 from terminaltables import SingleTable
-
-from cloudlift.config import ParameterStore
-from cloudlift.deployment.ecs import DeployAction
-from cloudlift.config.logging import log_bold, log_err, log_intent, log_with_color
-from datetime import datetime
-import boto3
-from glob import glob
+from cloudlift.deployment.troposphere_extensions import EnvironmentWithValuesFromSupport as EnvironmentX
 
 
 def find_essential_container(container_definitions):
@@ -36,12 +35,7 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
 
     essential_container = find_essential_container(task_definition[u'containerDefinitions'])
 
-    container_configurations = build_config(
-        env_name,
-        service_name,
-        sample_env_file_path,
-        essential_container,
-    )
+    container_configurations = build_config(env_name, service_name, sample_env_file_path, essential_container)
 
     if complete_image_uri is not None:
         task_definition.set_images(
@@ -112,12 +106,7 @@ def read_config(file_content):
 
 
 def _make_container_defn_env_conf(environment_config):
-    container_defn_env_config = []
-    for env_var_name in environment_config:
-        container_defn_env_config.append(
-            (env_var_name, environment_config[env_var_name])
-        )
-    return container_defn_env_config
+    return [{'Name': name, 'Value': environment_config[name]} for name in environment_config]
 
 
 def wait_for_finish(action, existing_events, color, deploy_end_time):
