@@ -150,8 +150,6 @@ Resources:
         - Environment: []
           Essential: 'false'
           Image: redis:latest
-          Links:
-            - 'DummyContainer:Dummy'
           LogConfiguration:
             LogDriver: awslogs
             Options:
