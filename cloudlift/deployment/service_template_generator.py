@@ -18,7 +18,7 @@ from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
 from troposphere.elasticloadbalancingv2 import SubnetMapping
 from troposphere.elasticloadbalancingv2 import LoadBalancer as NLBLoadBalancer
 from troposphere.elasticloadbalancingv2 import (Action, Certificate, Listener, ListenerRule, Condition,
-                                                PathPatternConfig, HostHeaderConfig)
+                                                HostHeaderConfig)
 from troposphere.elasticloadbalancingv2 import LoadBalancer as ALBLoadBalancer
 from troposphere.elasticloadbalancingv2 import (Matcher, RedirectConfig,
                                                 TargetGroup,
