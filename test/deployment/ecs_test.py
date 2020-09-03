@@ -22,7 +22,8 @@ class TestEcsTaskDefinition(unittest.TestCase):
                                                   {'name': 'com.amazonaws.ecs.capability.ecr-auth'},],
                            'placementConstraints': [], 'compatibilities': ['EC2']})
 
-        td.apply_container_environment(td.containers[0], [('PORT', '80'), ('LABEL', 'L4')])
+        new_env_config = [{"Name": 'PORT', "Value": '80'}, {"Name": 'LABEL', "Value": 'L4'}]
+        td.apply_container_environment(td.containers[0], new_env_config)
 
         expected_updated_env = [{'name': 'PORT', 'value': '80'}, {'name': 'LABEL', 'value': 'L4'}]
         self.assertEqual(td.containers[0]['environment'], expected_updated_env)
