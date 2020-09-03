@@ -130,7 +130,7 @@ This opens the `VISUAL` editor with default config similar to -
               "command": null,
               "http_interface": {
                   "alb": {
-                    "mode": "new"
+                    "create_new": true
                   },
                   "container_port": 80,
                   "internal": false,
@@ -197,7 +197,7 @@ An example service using `container_health_check`
 {
   "alb": {
     // This creates a new ALB and attaches the target group to it.
-    "mode": "new"
+    "create_new": true
   }
 }
 ```
@@ -207,9 +207,9 @@ An example service using `container_health_check`
 ```json5
 {
   "alb": {
-    // Using this means, the ALB is managed outside of this service definition.
+    // Setting this to false means, the ALB is managed outside of this service definition.
     // We can use this mode to attach the target group to one of the listeners of an existing ALB 
-    "mode": "existing",
+    "create_new": false,
 
     // Use listener_arn to attach the TargetGroup to an existing ALB's listener ARN.
     // The target group will be added using ListenerRule. Optional.
@@ -223,9 +223,6 @@ An example service using `container_health_check`
   
     // Use this to specify host based routing. Optional.
     "host": "abc.xyz",
-
-    // Use this to specify path based routing. Optional.
-    "path": "/some-path"
   }
 }
 ```

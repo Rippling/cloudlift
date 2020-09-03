@@ -306,15 +306,24 @@ service is down',
         if 'udp_interface' in config:
             lb, target_group_name = self._add_ecs_nlb(cd, service_name, config['udp_interface'], launch_type)
             nlb_enabled = 'nlb_enabled' in config['udp_interface'] and config['udp_interface']['nlb_enabled']
+            launch_type_svc = {}
+
             if nlb_enabled:
                 elb, service_listener, nlb_sg = self._add_nlb(service_name, config, target_group_name)
-            launch_type_svc = {
-                'NetworkConfiguration': NetworkConfiguration(
+                launch_type_svc['DependsOn'] = service_listener.title
+                launch_type_svc['NetworkConfiguration'] = NetworkConfiguration(
                     AwsvpcConfiguration=AwsvpcConfiguration(
                         Subnets=[Ref(self.private_subnet1), Ref(self.private_subnet2)],
                         SecurityGroups=[Ref(nlb_sg)])
                 )
-            }
+                self.template.add_output(
+                    Output(
+                        service_name + "URL",
+                        Description="The URL at which the service is accessible",
+                        Value=Sub("udp://${" + elb.name + ".DNSName}")
+                    )
+                )
+
             if launch_type == self.LAUNCH_TYPE_EC2:
                 launch_type_svc['PlacementStrategies'] = self.PLACEMENT_STRATEGIES
             svc = Service(
@@ -323,7 +332,6 @@ service is down',
                 Cluster=self.cluster_name,
                 TaskDefinition=Ref(td),
                 DesiredCount=desired_count,
-                DependsOn=service_listener.title,
                 LaunchType=launch_type,
                 **launch_type_svc,
             )
@@ -334,38 +342,41 @@ service is down',
                     Value=GetAtt(svc, 'Name')
                 )
             )
-            self.template.add_output(
-                Output(
-                    service_name + "URL",
-                    Description="The URL at which the service is accessible",
-                    Value=Sub("udp://${" + elb.name + ".DNSName}")
-                )
-            )
             self.template.add_resource(svc)
         elif 'http_interface' in config:
-            alb_config = config['http_interface'].get('alb', {})
-
             lb, target_group_name = self._add_ecs_lb(cd, service_name, config, launch_type)
-            alb_enabled = False
-            if alb_config:
-                mode = alb_config['mode']
-                if mode == 'existing':
-                    self.attach_to_existing_listener(alb_config, service_name, target_group_name)
-                elif mode == 'new':
-                    alb_enabled = True
+
+            security_group_ingress = {
+                'IpProtocol': 'TCP',
+                'ToPort': int(config['http_interface']['container_port']),
+                'FromPort': int(config['http_interface']['container_port']),
+            }
+            launch_type_svc = {}
+
+            alb_enabled = 'alb' in config['http_interface']
+            if alb_enabled:
+                create_new_alb = config['http_interface']['alb'].get('create_new', False)
+
+                if create_new_alb:
                     alb, service_listener, alb_sg = self._add_alb(service_name, config, target_group_name)
+                    launch_type_svc['DependsOn'] = service_listener.title
+
+                    self.template.add_output(
+                        Output(
+                            service_name + "URL",
+                            Description="The URL at which the service is accessible",
+                            Value=Sub("https://${" + alb.name + ".DNSName}")
+                        )
+                    )
+                    if launch_type == self.LAUNCH_TYPE_FARGATE:
+                        # needed for FARGATE security group creation.
+                        security_group_ingress['SourceSecurityGroupId'] = Ref(alb_sg)
+                else:
+                    self.attach_to_existing_listener(config['http_interface']['alb'], service_name, target_group_name)
 
             if launch_type == self.LAUNCH_TYPE_FARGATE:
                 # if launch type is ec2, then services inherit the ec2 instance security group
                 # otherwise, we need to specify a security group for the service
-                security_group_ingress = {
-                    'IpProtocol': 'TCP',
-                    'ToPort': int(config['http_interface']['container_port']),
-                    'FromPort': int(config['http_interface']['container_port']),
-                }
-                if alb_enabled:
-                    security_group_ingress['SourceSecurityGroupId'] = Ref(alb_sg)
-
                 service_security_group = SecurityGroup(
                     pascalcase("FargateService" + self.env + service_name),
                     GroupName=pascalcase("FargateService" + self.env + service_name),
@@ -375,27 +386,21 @@ service is down',
                 )
                 self.template.add_resource(service_security_group)
 
-                launch_type_svc = {
-                    'NetworkConfiguration': NetworkConfiguration(
-                        AwsvpcConfiguration=AwsvpcConfiguration(
-                            Subnets=[
-                                Ref(self.private_subnet1),
-                                Ref(self.private_subnet2)
-                            ],
-                            SecurityGroups=[
-                                Ref(service_security_group)
-                            ]
-                        )
+                launch_type_svc['NetworkConfiguration'] = NetworkConfiguration(
+                    AwsvpcConfiguration=AwsvpcConfiguration(
+                        Subnets=[
+                            Ref(self.private_subnet1),
+                            Ref(self.private_subnet2)
+                        ],
+                        SecurityGroups=[
+                            Ref(service_security_group)
+                        ]
                     )
-                }
+                )
             else:
-                launch_type_svc = {
-                    'Role': Ref(self.ecs_service_role),
-                    'PlacementStrategies': self.PLACEMENT_STRATEGIES
-                }
+                launch_type_svc['Role'] = Ref(self.ecs_service_role)
+                launch_type_svc['PlacementStrategies'] = self.PLACEMENT_STRATEGIES
 
-            if alb_enabled:
-                launch_type_svc['DependsOn'] = service_listener.title
             svc = Service(
                 service_name,
                 LoadBalancers=[lb],
@@ -416,15 +421,6 @@ service is down',
             )
 
             self.template.add_resource(svc)
-
-            if alb_enabled:
-                self.template.add_output(
-                    Output(
-                        service_name + "URL",
-                        Description="The URL at which the service is accessible",
-                        Value=Sub("https://${" + alb.name + ".DNSName}")
-                    )
-                )
         else:
             launch_type_svc = {}
             if launch_type == self.LAUNCH_TYPE_FARGATE:
@@ -482,15 +478,6 @@ service is down',
                     Field="host-header",
                     HostHeaderConfig=HostHeaderConfig(
                         Values=[alb_config['host']],
-                    ),
-                )
-            )
-        if 'path' in alb_config:
-            conditions.append(
-                Condition(
-                    Field="path-pattern",
-                    PathPatternConfig=PathPatternConfig(
-                        Values=[alb_config['path']],
                     ),
                 )
             )

@@ -154,14 +154,10 @@ class ServiceConfiguration(object):
                         "alb": {
                             "type": "object",
                             "properties": {
-                                "mode": {
-                                    "type": "string",
-                                    "enum": ["new", "existing"],
+                                "create_new": {
+                                    "type": "boolean",
                                 },
                                 "listener_arn": {
-                                    "type": "string"
-                                },
-                                "path": {
                                     "type": "string"
                                 },
                                 "host": {
@@ -172,7 +168,7 @@ class ServiceConfiguration(object):
                                 }
                             },
                             "required": [
-                                "mode"
+                                "create_new"
                             ]
                         },
                         "restrict_access_to": {
@@ -357,7 +353,7 @@ class ServiceConfiguration(object):
                     u'http_interface': {
                         u'internal': False,
                         u'alb': {
-                            u'mode': 'new',
+                            u'create_new': True,
                         },
                         u'restrict_access_to': [u'0.0.0.0/0'],
                         u'container_port': 80,

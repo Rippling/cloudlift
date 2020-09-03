@@ -27,7 +27,7 @@ def mocked_service_config(cls, *args, **kwargs):
                 ],
                 "http_interface": {
                     "alb": {
-                        "mode": "new"
+                        "create_new": True
                     },
                     "container_port": 80,
                     "internal": False,

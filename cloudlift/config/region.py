@@ -27,14 +27,6 @@ def get_environment_level_alb_listener(environment):
     return env_spec['loadbalancer_listener_arn']
 
 
-def get_environment_level_alb(environment):
-    env_spec = EnvironmentConfiguration(environment).get_config()[environment]
-    if 'loadbalancer_arn' not in env_spec:
-        raise UnrecoverableException('environment level ALB not defined. Please update_environment.')
-
-    return env_spec['loadbalancer_arn']
-
-
 def get_service_templates_bucket_for_environment(environment):
     global local_cache
 
