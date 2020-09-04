@@ -3,6 +3,7 @@ import re
 
 import boto3
 from awacs.aws import PolicyDocument, Statement, Allow, Principal
+from awacs.secretsmanager import GetSecretValue
 from awacs.sts import AssumeRole
 from cfn_flip import to_yaml
 from stringcase import pascalcase
@@ -23,7 +24,7 @@ from troposphere.elasticloadbalancingv2 import LoadBalancer as ALBLoadBalancer
 from troposphere.elasticloadbalancingv2 import (Matcher, RedirectConfig,
                                                 TargetGroup,
                                                 TargetGroupAttribute)
-from troposphere.iam import Role
+from troposphere.iam import Role, Policy
 
 from cloudlift.config import DecimalEncoder
 from cloudlift.config import get_account_id
@@ -267,6 +268,29 @@ service is down',
                 ]
             )
         ))
+        task_execution_role = self.template.add_resource(Role(
+            service_name + "TaskExecutionRole",
+            AssumeRolePolicyDocument=PolicyDocument(
+                Statement=[
+                    Statement(
+                        Effect=Allow,
+                        Action=[AssumeRole],
+                        Principal=Principal("Service", ["ecs-tasks.amazonaws.com"])
+                    )
+                ]
+            ),
+            Policies=[Policy(
+                PolicyName=service_name + "TaskExecutionRolePolicy",
+                PolicyDocument=PolicyDocument(
+                    Statement=[Statement(
+                        Effect=Allow,
+                        Action=[GetSecretValue],
+                        #As given here in https://docs.aws.amazon.com/code-samples/latest/catalog/iam_policies-secretsmanager-asm-user-policy-grants-access-to-secret-by-name-with-wildcard.json.html
+                        Resource=[f"arn:aws:secretsmanager:{self.region}:{self.account_id}:secret:*-{self.env}-??????"]
+                    )]
+                )
+            )]
+        ))
 
         launch_type_td = {}
         if launch_type == self.LAUNCH_TYPE_FARGATE:
@@ -290,6 +314,7 @@ service is down',
             Family=service_name + "Family",
             ContainerDefinitions=container_definitions,
             TaskRoleArn=Ref(task_role),
+            ExecutionRoleArn=Ref(task_execution_role),
             PlacementConstraints=placement_constraints,
             **launch_type_td
         )
