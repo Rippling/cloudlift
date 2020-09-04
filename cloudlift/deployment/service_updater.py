@@ -9,7 +9,7 @@ from botocore.exceptions import ClientError
 from cloudlift.exceptions import UnrecoverableException
 from stringcase import spinalcase
 
-from cloudlift.config import get_account_id
+from cloudlift.config import get_account_id, ServiceConfiguration
 from cloudlift.config import (get_client_for,
                               get_region_for_environment)
 from cloudlift.config import get_cluster_name, get_service_stack_name
@@ -36,6 +36,7 @@ class ServiceUpdater(object):
         self.build_args = build_args
         self.dockerfile = dockerfile
         self.working_dir = working_dir
+        self.service_configuration = ServiceConfiguration(self.name, self.environment).get_config()
 
     def run(self):
         log_warning("Deploying to {self.region}".format(**locals()))
@@ -50,8 +51,8 @@ class ServiceUpdater(object):
         ecs_client = EcsClient(None, None, self.region)
 
         jobs = []
-        for index, service_name in enumerate(self.ecs_service_names):
-            log_bold("Queueing deployment of " + service_name)
+        for index, ecs_service_name in enumerate(self.ecs_service_names):
+            log_bold("Queueing deployment of " + ecs_service_name)
             color = DEPLOYMENT_COLORS[index % 3]
             image_url = self.ecr_image_uri
             image_url += (':' + self.version)
@@ -60,14 +61,15 @@ class ServiceUpdater(object):
                 args=(
                     ecs_client,
                     self.cluster_name,
-                    service_name,
+                    ecs_service_name,
                     self.version,
                     self.name,
                     self.env_sample_file,
                     self.timeout_seconds,
                     self.environment,
                     color,
-                    image_url
+                    image_url,
+                    self.service_configuration['services']['ecs_service_name'].get('secrets_name_prefix')
                 )
             )
             jobs.append(process)
