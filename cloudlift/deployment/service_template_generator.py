@@ -3,6 +3,8 @@ import re
 
 import boto3
 from awacs.aws import PolicyDocument, Statement, Allow, Principal
+from awacs.ecr import GetAuthorizationToken, BatchCheckLayerAvailability, GetDownloadUrlForLayer, BatchGetImage
+from awacs.logs import CreateLogStream, PutLogEvents
 from awacs.secretsmanager import GetSecretValue
 from awacs.sts import AssumeRole
 from cfn_flip import to_yaml
@@ -273,6 +275,8 @@ service is down',
                 ]
             )
         ))
+        # https://docs.aws.amazon.com/code-samples/latest/catalog/iam_policies-secretsmanager-asm-user-policy-grants-access-to-secret-by-name-with-wildcard.json.html
+        secrets_arn_regex = f"arn:aws:secretsmanager:{self.region}:{self.account_id}:secret:*-{self.env}-??????"
         task_execution_role = self.template.add_resource(Role(
             service_name + "TaskExecutionRole",
             AssumeRolePolicyDocument=PolicyDocument(
@@ -284,24 +288,23 @@ service is down',
                     )
                 ]
             ),
-            Policies=[Policy(
-                PolicyName=service_name + "TaskExecutionRolePolicy",
-                PolicyDocument=PolicyDocument(
-                    Statement=[Statement(
-                        Effect=Allow,
-                        Action=[GetSecretValue],
-                        # As given here in https://docs.aws.amazon.com/code-samples/latest/catalog/iam_policies-secretsmanager-asm-user-policy-grants-access-to-secret-by-name-with-wildcard.json.html
-                        Resource=[f"arn:aws:secretsmanager:{self.region}:{self.account_id}:secret:*-{self.env}-??????"]
-                    )]
-                )
-            )]
+            Policies=[
+                Policy(PolicyName=service_name + "TaskExecutionRolePolicy",
+                       PolicyDocument=PolicyDocument(
+                           Statement=[
+                               Statement(Effect=Allow, Action=[GetSecretValue], Resource=[secrets_arn_regex]),
+                               Statement(Effect=Allow,
+                                         Action=[GetAuthorizationToken, BatchCheckLayerAvailability,
+                                                 GetDownloadUrlForLayer, BatchGetImage, CreateLogStream, PutLogEvents],
+                                         Resource=["*"])
+                           ]
+                       ))]
         ))
 
         launch_type_td = {}
         if launch_type == self.LAUNCH_TYPE_FARGATE:
             launch_type_td = {
                 'RequiresCompatibilities': ['FARGATE'],
-                'ExecutionRoleArn': boto3.resource('iam').Role('ecsTaskExecutionRole').arn,
                 'NetworkMode': 'awsvpc',
                 'Cpu': str(config['fargate']['cpu']),
                 'Memory': str(config['fargate']['memory'])

@@ -99,7 +99,7 @@ Resources:
             - Name: LABEL
               ValueFrom: arn_secret_label_v1
       Cpu: '256'
-      ExecutionRoleArn: arn:aws:iam::12537612:role/DummyExecutionRole
+      ExecutionRoleArn: !Ref 'DummyFargateRunSidekiqshTaskExecutionRole'
       Family: DummyFargateRunSidekiqshFamily
       Memory: '512'
       NetworkMode: awsvpc
@@ -108,6 +108,36 @@ Resources:
         - FARGATE
       TaskRoleArn: !Ref 'DummyFargateRunSidekiqshRole'
     Type: AWS::ECS::TaskDefinition
+  DummyFargateRunSidekiqshTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - secretsmanager:GetSecretValue
+                Effect: Allow
+                Resource:
+                  - arn:aws:secretsmanager:us-west-2:12537612:secret:*-staging-??????
+              - Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - '*'
+          PolicyName: DummyFargateRunSidekiqshTaskExecutionRolePolicy
+    Type: AWS::IAM::Role
   DummyFargateService:
     Properties:
       Cluster: cluster-staging
@@ -163,7 +193,7 @@ Resources:
             - Name: LABEL
               ValueFrom: arn_secret_label_v1
       Cpu: '256'
-      ExecutionRoleArn: arn:aws:iam::12537612:role/DummyExecutionRole
+      ExecutionRoleArn: !Ref 'DummyFargateServiceTaskExecutionRole'
       Family: DummyFargateServiceFamily
       Memory: '512'
       NetworkMode: awsvpc
@@ -172,6 +202,36 @@ Resources:
         - FARGATE
       TaskRoleArn: !Ref 'DummyFargateServiceRole'
     Type: AWS::ECS::TaskDefinition
+  DummyFargateServiceTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - secretsmanager:GetSecretValue
+                Effect: Allow
+                Resource:
+                  - arn:aws:secretsmanager:us-west-2:12537612:secret:*-staging-??????
+              - Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - '*'
+          PolicyName: DummyFargateServiceTaskExecutionRolePolicy
+    Type: AWS::IAM::Role
   ECSServiceRole:
     Properties:
       AssumeRolePolicyDocument:

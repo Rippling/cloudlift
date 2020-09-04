@@ -14,6 +14,9 @@ Outputs:
   DummyRunSidekiqshEcsServiceName:
     Description: The ECS name which needs to be entered
     Value: !GetAtt 'DummyRunSidekiqsh.Name'
+  DummySecretsNamePrefix:
+    Description: AWS secrets manager name prefix to pull the secrets from
+    Value: dummy-config
   StackId:
     Description: The unique ID of the stack. To be supplied to circle CI environment
       variables to validate during deployment.
@@ -126,10 +129,41 @@ Resources:
           Secrets:
             - Name: LABEL
               ValueFrom: arn_secret_label_v1
+      ExecutionRoleArn: !Ref 'DummyRunSidekiqshTaskExecutionRole'
       Family: DummyRunSidekiqshFamily
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyRunSidekiqshRole'
     Type: AWS::ECS::TaskDefinition
+  DummyRunSidekiqshTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - secretsmanager:GetSecretValue
+                Effect: Allow
+                Resource:
+                  - arn:aws:secretsmanager:us-west-2:12537612:secret:*-staging-??????
+              - Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - '*'
+          PolicyName: DummyRunSidekiqshTaskExecutionRolePolicy
+    Type: AWS::IAM::Role
   DummyTaskDefinition:
     Properties:
       ContainerDefinitions:
@@ -165,10 +199,41 @@ Resources:
               awslogs-stream-prefix: Dummy
           MemoryReservation: 256
           Name: redisContainer
+      ExecutionRoleArn: !Ref 'DummyTaskExecutionRole'
       Family: DummyFamily
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyRole'
     Type: AWS::ECS::TaskDefinition
+  DummyTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - secretsmanager:GetSecretValue
+                Effect: Allow
+                Resource:
+                  - arn:aws:secretsmanager:us-west-2:12537612:secret:*-staging-??????
+              - Action:
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Effect: Allow
+                Resource:
+                  - '*'
+          PolicyName: DummyTaskExecutionRolePolicy
+    Type: AWS::IAM::Role
   ECSServiceRole:
     Properties:
       AssumeRolePolicyDocument:
