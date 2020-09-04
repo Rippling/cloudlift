@@ -27,6 +27,7 @@ def mocked_service_config():
                 "deployment": {
                     "maximum_percent": Decimal(150)
                 },
+                "secrets_name_prefix": "dummy-config",
                 "sidecars": [
                     {
                         "name": "redis",
@@ -157,7 +158,9 @@ class TestServiceTemplateGenerator(TestCase):
                                                environment=environment)
         mock_service_configuration.get_config.return_value = mocked_service_config()
 
-        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
+        def mock_build_config_impl(env_name, service_name, sample_env_file_path, ecs_service_name, secrets_name_prefix):
+            expected_prefix = "dummy-config" if ecs_service_name == "DummyContainer" else None
+            self.assertEqual(secrets_name_prefix, expected_prefix)
             return {ecs_service_name: {"secrets": {"LABEL": 'arn_secret_label_v1'}, "environment": {"PORT": "80"}}}
 
         mock_build_config.side_effect = mock_build_config_impl
@@ -169,6 +172,7 @@ class TestServiceTemplateGenerator(TestCase):
         template_generator.env_sample_file_path = './test/templates/test_env.sample'
         generated_template = template_generator.generate_service()
         template_file_path = os.path.join(os.path.dirname(__file__), '../templates/expected_service_template.yml')
+        print(generated_template)
         with(open(template_file_path)) as expected_template_file:
             assert to_json(''.join(expected_template_file.readlines())) == to_json(generated_template)
 
@@ -205,7 +209,7 @@ class TestServiceTemplateGenerator(TestCase):
             }
         }
 
-        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
+        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name, prefix):
             return {ecs_service_name: {"secrets": {}, "environment": {"PORT": "80"}}}
 
         mock_build_config.side_effect = mock_build_config_impl
@@ -275,7 +279,7 @@ class TestServiceTemplateGenerator(TestCase):
             }
         }
 
-        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
+        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name, prefix):
             return {ecs_service_name: {"secrets": {"LABEL": 'arn_secret_label_v1'}, "environment": {"PORT": "80"}}}
 
         mock_build_config.side_effect = mock_build_config_impl
@@ -329,7 +333,7 @@ class TestServiceTemplateGenerator(TestCase):
                                                environment=environment)
         mock_service_configuration.get_config.return_value = mocked_fargate_service_config()
 
-        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
+        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name, prefix):
             return {ecs_service_name: {"secrets": {"LABEL": 'arn_secret_label_v1'}, "environment": {"PORT": "80"}}}
 
         mock_build_config.side_effect = mock_build_config_impl
@@ -366,7 +370,7 @@ class TestServiceTemplateGenerator(TestCase):
                                                environment=environment)
         mock_service_configuration.get_config.return_value = mocked_udp_fargate_service_config()
 
-        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
+        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name, prefix):
             return {ecs_service_name: {"secrets": {"LABEL": 'arn_secret_label_v1'}, "environment": {"PORT": "80"}}}
 
         mock_build_config.side_effect = mock_build_config_impl
@@ -399,7 +403,7 @@ class TestServiceTemplateGenerator(TestCase):
                                                environment=environment)
         mock_service_configuration.get_config.return_value = mocked_udp_service_config()
 
-        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name):
+        def mock_build_config_impl(env_name, cloudlift_service_name, sample_env_file_path, ecs_service_name, prefix):
             return {ecs_service_name: {"secrets": {"LABEL": 'arn_secret_label_v1'}, "environment": {"PORT": "80"}}}
 
         mock_build_config.side_effect = mock_build_config_impl

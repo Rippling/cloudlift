@@ -175,7 +175,7 @@ service is down',
     def _add_service(self, service_name, config):
         launch_type = self.LAUNCH_TYPE_FARGATE if 'fargate' in config else self.LAUNCH_TYPE_EC2
         container_configurations = build_config(self.env, self.application_name, self.env_sample_file_path,
-                                                container_name(service_name))
+                                                container_name(service_name), config.get('secrets_name_prefix'))
         env_config = container_configurations[container_name(service_name)]['environment']
         secrets_config = container_configurations[container_name(service_name)]['secrets']
         log_config = self._gen_log_config(service_name)

@@ -315,6 +315,9 @@ class ServiceConfiguration(object):
                 "log_group":{
                     "type": "string",
                 },
+                "secrets_name_prefix":{
+                    "type": "string",
+                }
             },
             "required": ["memory_reservation", "command"]
         }

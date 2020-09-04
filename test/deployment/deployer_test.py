@@ -267,14 +267,14 @@ class TestBuildConfig(TestCase):
         cloudlift_service_name = "Dummy"
         sample_env_file_path = "test-env.sample"
         essential_container_name = "mainServiceContainer"
-        config_prefix = "main"
+        secrets_name_prefix = "main"
         mock_store = MagicMock()
         mock_parameter_store.return_value = mock_store
         mock_store.get_existing_config.return_value = ({'PORT': '80', 'LABEL': 'Dummy'}, {})
         mock_secrets_manager.get_config.return_value = {"LABEL": "arn_for_secret_at_v1"}
 
         actual_configurations = build_config(env_name, cloudlift_service_name, sample_env_file_path,
-                                             essential_container_name, config_prefix)
+                                             essential_container_name, secrets_name_prefix)
 
         expected_configurations = {
             "mainServiceContainer": {
@@ -283,7 +283,7 @@ class TestBuildConfig(TestCase):
             }
         }
         self.assertDictEqual(expected_configurations, actual_configurations)
-        mock_secrets_manager.get_config.assert_called_once_with(config_prefix, env_name)
+        mock_secrets_manager.get_config.assert_called_once_with(secrets_name_prefix, env_name)
 
     @patch('builtins.open', mock_open(read_data="PORT=1\nLABEL=test\nADDITIONAL_CONFIG=true"))
     @patch('cloudlift.deployment.deployer.ParameterStore')
@@ -293,18 +293,18 @@ class TestBuildConfig(TestCase):
         service_name = "Dummy"
         sample_env_file_path = "test-env.sample"
         essential_container_name = "mainService"
-        config_prefix = "main"
+        secrets_name_prefix = "main"
         mock_store = MagicMock()
         m_parameter_store.return_value = mock_store
         mock_store.get_existing_config.return_value = ({'PORT': '80'}, {})
         m_secrets_manager.get_config.return_value = {"LABEL": "arn_for_secret_at_v1"}
 
         with pytest.raises(UnrecoverableException) as pytest_wrapped_e:
-            build_config(env_name, service_name, sample_env_file_path, essential_container_name, config_prefix)
+            build_config(env_name, service_name, sample_env_file_path, essential_container_name, secrets_name_prefix)
 
         self.assertEqual(pytest_wrapped_e.type, UnrecoverableException)
         self.assertEqual(str(pytest_wrapped_e.value), '"There is no config value for the keys {\'ADDITIONAL_CONFIG\'}"')
-        m_secrets_manager.get_config.assert_called_once_with(config_prefix, env_name)
+        m_secrets_manager.get_config.assert_called_once_with(secrets_name_prefix, env_name)
 
     @patch('builtins.open', mock_open(read_data="PORT=1\nLABEL=test"))
     @patch('cloudlift.deployment.deployer.ParameterStore')
@@ -314,16 +314,16 @@ class TestBuildConfig(TestCase):
         service_name = "Dummy"
         sample_env_file_path = "test-env.sample"
         essential_container_name = "mainService"
-        config_prefix = "main"
+        secrets_name_prefix = "main"
         mock_store = MagicMock()
         m_parameter_store.return_value = mock_store
         mock_store.get_existing_config.return_value = ({'PORT': '80', 'ADDITIONAL_KEYS': 'true'}, {})
         m_secrets_mgr.get_config.return_value = {"LABEL": "arn_for_secret_at_v1"}
 
         with pytest.raises(UnrecoverableException) as pytest_wrapped_e:
-            build_config(env_name, service_name, sample_env_file_path, essential_container_name, config_prefix)
+            build_config(env_name, service_name, sample_env_file_path, essential_container_name, secrets_name_prefix)
 
         self.assertEqual(pytest_wrapped_e.type, UnrecoverableException)
         self.assertEqual(str(pytest_wrapped_e.value), '"There is no config value for the keys in test-env.sample '
                                                       'file {\'ADDITIONAL_KEYS\'}"')
-        m_secrets_mgr.get_config.assert_called_once_with(config_prefix, env_name)
+        m_secrets_mgr.get_config.assert_called_once_with(secrets_name_prefix, env_name)
