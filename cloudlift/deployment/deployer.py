@@ -68,18 +68,12 @@ def deploy_and_wait(deployment, new_task_definition, color, timeout_seconds):
 
 
 def build_config(env_name, service_name, sample_env_file_path, essential_container_name, config_prefix=None):
-    env_config_param_store = _get_parameter_store_config(service_name, env_name)
     env_config_secrets_mgr = secrets_manager.get_config(config_prefix, env_name) if config_prefix else {}
-    _validate_config_availability(sample_env_file_path, set(env_config_param_store).union(set(env_config_secrets_mgr)))
-    return {essential_container_name: _merge_configs(env_config_secrets_mgr, env_config_param_store)}
-
-
-def _merge_configs(env_config_secrets_mgr, env_config_param_store):
-    env_conf_list = [{'Name': name, 'ValueFrom': env_config_secrets_mgr[name]} for name in env_config_secrets_mgr]
+    env_config_param_store = _get_parameter_store_config(service_name, env_name)
     keys_not_in_secret_mgr = set(env_config_param_store) - set(env_config_secrets_mgr)
-    for key in keys_not_in_secret_mgr:
-        env_conf_list.append({'Name': key, 'Value': env_config_param_store[key]})
-    return env_conf_list
+    env_config = {k: env_config_param_store[k] for k in keys_not_in_secret_mgr}
+    _validate_config_availability(sample_env_file_path, set(env_config_param_store).union(set(env_config_secrets_mgr)))
+    return {essential_container_name: {"secrets": env_config_secrets_mgr, "environment": env_config}}
 
 
 def _get_parameter_store_config(service_name, env_name):

@@ -8,6 +8,7 @@ from cloudlift.deployment.deployer import is_deployed, \
 from cloudlift.deployment.ecs import EcsService, EcsTaskDefinition
 from cloudlift.exceptions import UnrecoverableException
 
+
 class TestDeployer(TestCase):
     def test_is_deployed_returning_true_if_desiredCount_equals_runningCount(self):
         deployments = [
@@ -250,14 +251,12 @@ class TestBuildConfig(TestCase):
                                              essential_container_name)
 
         expected_configurations = {
-            "mainServiceContainer": [
-                {"Name": "PORT", "Value": "80"},
-                {"Name": "LABEL", "Value": "Dummy"}
-            ]
+            "mainServiceContainer": {
+                "environment": {"LABEL": "Dummy", "PORT": "80"},
+                "secrets": {}
+            }
         }
-
-        self.assertEqual(sorted(expected_configurations['mainServiceContainer'], key=lambda c: c["Name"]),
-                         sorted(actual_configurations['mainServiceContainer'], key=lambda c: c["Name"]))
+        self.assertDictEqual(expected_configurations, actual_configurations)
         mock_secrets_manager.get_config.assert_not_called()
 
     @patch('builtins.open', mock_open(read_data="PORT=1\nLABEL=test"))
@@ -278,13 +277,12 @@ class TestBuildConfig(TestCase):
                                              essential_container_name, config_prefix)
 
         expected_configurations = {
-            "mainServiceContainer": [
-                {"Name": "LABEL", "ValueFrom": "arn_for_secret_at_v1"},
-                {"Name": "PORT", "Value": "80"}
-            ]
+            "mainServiceContainer": {
+                "secrets": {"LABEL": "arn_for_secret_at_v1"},
+                "environment": {"PORT": "80"}
+            }
         }
-        self.assertEqual(sorted(expected_configurations['mainServiceContainer'], key=lambda c: c["Name"]),
-                         sorted(actual_configurations['mainServiceContainer'], key=lambda c: c["Name"]))
+        self.assertDictEqual(expected_configurations, actual_configurations)
         mock_secrets_manager.get_config.assert_called_once_with(config_prefix, env_name)
 
     @patch('builtins.open', mock_open(read_data="PORT=1\nLABEL=test\nADDITIONAL_CONFIG=true"))
