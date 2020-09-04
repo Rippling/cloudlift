@@ -7,7 +7,7 @@ value changes onto it and merging new configs. This means, environment
 variables cannot be deleted.
 
 To update the package:
-Copy the new contents, but ensure that apply_container_environment is retained
+Copy the new contents, but ensure that apply_container_environment_and_secrets is retained
 or updated. If the package supports deleting configs, use that.
 """
 
@@ -293,44 +293,16 @@ class EcsTaskDefinition(dict):
                 self._diff.append(diff)
                 container[u'command'] = [new_command]
 
-    def set_environment(self, environment_list):
-        environment = {}
+    def apply_container_environment_and_secrets(self, container, new_environment_and_secrets):
+        new_environment = new_environment_and_secrets.get('environment', {})
+        old_environment = {env['name']: env['value'] for env in container.get('environment', {})}
+        container[u'environment'] = [{"name": e, "value": new_environment[e]} for e in new_environment]
+        self._diff.append(EcsTaskDefinitionDiff(container['name'], 'environment', new_environment, old_environment))
 
-        for env in environment_list:
-            environment.setdefault(env[0], {})
-            environment[env[0]][env[1]] = env[2]
-
-        self.validate_container_options(**environment)
-        for container in self.containers:
-            if container[u'name'] in environment:
-                self.apply_container_environment(
-                    container=container,
-                    new_environment=environment[container[u'name']]
-                )
-
-    def apply_container_environment(self, container, new_environment):
-        old_environment = {
-            env['name']: env['value'] for env in container.get(
-                'environment',
-                {}
-            )
-        }
-        merged_environment = {env["Name"]: env["Value"] for env in new_environment}
-
-        diff = EcsTaskDefinitionDiff(
-            container[u'name'],
-            u'environment',
-            merged_environment,
-            old_environment
-        )
-        self._diff.append(diff)
-
-        container[u'environment'] = [
-            {
-                "name": e,
-                "value": merged_environment[e]
-            } for e in merged_environment
-        ]
+        new_secrets = new_environment_and_secrets.get('secrets', {})
+        old_secrets = {env['name']: env['valueFrom'] for env in container.get('secrets', {})}
+        container[u'secrets'] = [{"name": s, "valueFrom": new_secrets[s]} for s in new_secrets]
+        self._diff.append(EcsTaskDefinitionDiff(container['name'], 'secrets', new_secrets, old_secrets))
 
     def validate_container_options(self, **container_options):
         for container_name in container_options:

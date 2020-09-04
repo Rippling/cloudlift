@@ -47,7 +47,7 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
         task_definition.set_images(essential_container, deploy_version_tag)
     for container in task_definition.containers:
         env_config = container_configurations.get(container[u'name'], [])
-        task_definition.apply_container_environment(container, env_config)
+        task_definition.apply_container_environment_and_secrets(container, env_config)
     print_task_diff(ecs_service_name, task_definition.diff, color)
     new_task_definition = deployment.update_task_definition(task_definition)
 
@@ -181,21 +181,32 @@ def print_task_diff(ecs_service_name, diffs, color):
     else:
         log_with_color(ecs_service_name + " No change in image version", color)
     env_diff = next(x for x in diffs if x.field == 'environment')
-    old_env, current_env = env_diff.old_value, env_diff.value
-    env_vars = sorted(
-        set(env_diff.old_value.keys()).union(env_diff.value.keys())
-    )
-    table_data = []
-    table_data.append(
-        [
-            Color('{autoyellow}Env. var.{/autoyellow}'),
-            Color('{autoyellow}Old value{/autoyellow}'),
-            Color('{autoyellow}Current value{/autoyellow}')
-        ]
-    )
-    for env_var in env_vars:
-        old_val = old_env.get(env_var, '-')
-        current_val = current_env.get(env_var, '-')
+    table_data = _prepare_diff_table(env_diff)
+    if len(table_data) > 1:
+        log_with_color(ecs_service_name + " Environment changes", color)
+        print(SingleTable(table_data).table)
+    else:
+        log_with_color(ecs_service_name + " No change in environment variables", color)
+    secrets_diff = next(x for x in diffs if x.field == 'secrets')
+    table_data = _prepare_diff_table(secrets_diff)
+    if len(table_data) > 1:
+        log_with_color(ecs_service_name + " Secrets changes", color)
+        print(SingleTable(table_data).table)
+    else:
+        log_with_color(ecs_service_name + " No change in secrets", color)
+
+
+def _prepare_diff_table(diff):
+    old_val, current_val = diff.old_value, diff.value
+    keys = sorted(set(diff.old_value.keys()).union(diff.value.keys()))
+    table_data = [[
+        Color('{autoyellow}Name{/autoyellow}'),
+        Color('{autoyellow}Old value{/autoyellow}'),
+        Color('{autoyellow}Current value{/autoyellow}')
+    ]]
+    for env_var in keys:
+        old_val = old_val.get(env_var, '-')
+        current_val = current_val.get(env_var, '-')
         if old_val != current_val:
             env_var_diff_color = 'autored'
             table_data.append(
@@ -209,14 +220,7 @@ def print_task_diff(ecs_service_name, diffs, color):
                     current_val
                 ]
             )
-    if len(table_data) > 1:
-        log_with_color(ecs_service_name + " Environment changes", color)
-        print(SingleTable(table_data).table)
-    else:
-        log_with_color(
-            ecs_service_name + " No change in environment variables",
-            color
-        )
+    return table_data
 
 
 def container_name(service_name):

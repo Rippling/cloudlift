@@ -262,7 +262,7 @@ class TestBuildConfig(TestCase):
     @patch('builtins.open', mock_open(read_data="PORT=1\nLABEL=test"))
     @patch('cloudlift.deployment.deployer.ParameterStore')
     @patch('cloudlift.deployment.deployer.secrets_manager')
-    def test_successful_build_config_from_secret_manager(self, mock_secrets_manager, mock_parameter_store):
+    def test_successful_build_config_from_without_duplicates(self, mock_secrets_manager, mock_parameter_store):
         env_name = "staging"
         cloudlift_service_name = "Dummy"
         sample_env_file_path = "test-env.sample"
