@@ -190,7 +190,7 @@ def print_task_diff(ecs_service_name, diffs, color):
 
 
 def _prepare_diff_table(diff):
-    old_val, current_val = diff.old_value, diff.value
+    old_value, current_value = diff.old_value, diff.value
     keys = sorted(set(diff.old_value.keys()).union(diff.value.keys()))
     table_data = [[
         Color('{autoyellow}Name{/autoyellow}'),
@@ -198,8 +198,8 @@ def _prepare_diff_table(diff):
         Color('{autoyellow}Current value{/autoyellow}')
     ]]
     for env_var in keys:
-        old_val = old_val.get(env_var, '-')
-        current_val = current_val.get(env_var, '-')
+        old_val = old_value.get(env_var, '-')
+        current_val = current_value.get(env_var, '-')
         if old_val != current_val:
             env_var_diff_color = 'autored'
             table_data.append(

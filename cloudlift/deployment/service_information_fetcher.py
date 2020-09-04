@@ -30,6 +30,15 @@ class ServiceInformationFetcher(object):
                     stack['Outputs']
                 )
             )
+            stack_outputs = {output['OutputKey']: output['OutputValue'] for output in stack['Outputs'] }
+            self.service_info = {}
+            for service_output in ecs_service_outputs:
+                ecs_service_logical_name = service_output['OutputKey'].replace("EcsServiceName", "")
+                self.service_info[ecs_service_logical_name] = {
+                    "ecs_service_name": service_output['OutputValue'],
+                    "secrets_name_prefix":  stack_outputs.get(ecs_service_logical_name+'SecretsNamePrefix')
+                }
+
             self.ecs_service_names = [svc_name['OutputValue'] for svc_name in ecs_service_outputs]
             self.ecs_service_logical_name_mappings = []
             for service_output in ecs_service_outputs:
