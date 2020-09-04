@@ -95,6 +95,9 @@ Resources:
               awslogs-stream-prefix: DummyFargateRunSidekiqsh
           MemoryReservation: 512
           Name: DummyFargateRunSidekiqshContainer
+          Secrets:
+            - Name: LABEL
+              ValueFrom: arn_secret_label_v1
       Cpu: '256'
       ExecutionRoleArn: arn:aws:iam::12537612:role/DummyExecutionRole
       Family: DummyFargateRunSidekiqshFamily
@@ -156,6 +159,9 @@ Resources:
           Name: DummyFargateServiceContainer
           PortMappings:
             - ContainerPort: 80
+          Secrets:
+            - Name: LABEL
+              ValueFrom: arn_secret_label_v1
       Cpu: '256'
       ExecutionRoleArn: arn:aws:iam::12537612:role/DummyExecutionRole
       Family: DummyFargateServiceFamily

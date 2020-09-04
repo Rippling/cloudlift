@@ -10,7 +10,7 @@ from troposphere import GetAtt, Output, Parameter, Ref, Sub
 from troposphere.cloudwatch import Alarm, MetricDimension
 from troposphere.ec2 import SecurityGroup
 from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
-                             DeploymentConfiguration, Environment,
+                             DeploymentConfiguration, Environment, Secret,
                              LoadBalancer, LogConfiguration,
                              NetworkConfiguration, PlacementStrategy,
                              PortMapping, Service, TaskDefinition, PlacementConstraint, SystemControl,
@@ -176,11 +176,12 @@ service is down',
         launch_type = self.LAUNCH_TYPE_FARGATE if 'fargate' in config else self.LAUNCH_TYPE_EC2
         container_configurations = build_config(self.env, self.application_name, self.env_sample_file_path,
                                                 container_name(service_name))
+        env_config = container_configurations[container_name(service_name)]['environment']
+        secrets_config = container_configurations[container_name(service_name)]['secrets']
         log_config = self._gen_log_config(service_name)
         container_definition_arguments = {
-            "Environment": [
-                Environment(Name=cfg["Name"], Value=cfg["Value"]) for cfg in container_configurations[container_name(service_name)]
-            ],
+            "Environment": [Environment(Name=name, Value=env_config[name]) for name in env_config],
+            "Secrets": [Secret(Name=name, ValueFrom=secrets_config[name]) for name in secrets_config],
             "Name": container_name(service_name),
             "Image": self.ecr_image_uri + ':' + self.current_version,
             "Essential": 'true',

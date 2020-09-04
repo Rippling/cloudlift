@@ -74,12 +74,12 @@ Resources:
     Properties:
       Actions:
         - TargetGroupArn: !Ref 'TargetGroupDummy'
-          Type: 'forward'
+          Type: forward
       Conditions:
         - Field: host-header
           HostHeaderConfig:
             Values:
-              - 'abc.xyz.com'
+              - abc.xyz.com
       ListenerArn: listenerARN1234
       Priority: 4
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -113,6 +113,9 @@ Resources:
           Name: DummyContainer
           PortMappings:
             - ContainerPort: 7003
+          Secrets:
+            - Name: LABEL
+              ValueFrom: arn_secret_label_v1
       Family: DummyFamily
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyRole'
@@ -139,7 +142,7 @@ Resources:
     Properties:
       Actions:
         - TargetGroupArn: !Ref 'TargetGroupDummyWithCustomListener'
-          Type: 'forward'
+          Type: forward
       Conditions: []
       ListenerArn: custom_listener_arn
       Priority: 100
@@ -174,6 +177,9 @@ Resources:
           Name: DummyWithCustomListenerContainer
           PortMappings:
             - ContainerPort: 7003
+          Secrets:
+            - Name: LABEL
+              ValueFrom: arn_secret_label_v1
       Family: DummyWithCustomListenerFamily
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyWithCustomListenerRole'

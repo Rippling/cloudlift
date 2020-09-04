@@ -208,6 +208,9 @@ Resources:
             - ContainerPort: 1814
               HostPort: 1814
               Protocol: tcp
+          Secrets:
+            - Name: LABEL
+              ValueFrom: arn_secret_label_v1
       Family: FreeradiusServerFamily
       NetworkMode: awsvpc
       PlacementConstraints: []

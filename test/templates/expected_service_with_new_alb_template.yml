@@ -110,6 +110,7 @@ Resources:
           Name: DummyContainer
           PortMappings:
             - ContainerPort: 7003
+          Secrets: []
       Family: DummyFamily
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyRole'

@@ -122,6 +122,9 @@ Resources:
               awslogs-stream-prefix: DummyRunSidekiqsh
           MemoryReservation: 1000
           Name: DummyRunSidekiqshContainer
+          Secrets:
+            - Name: LABEL
+              ValueFrom: arn_secret_label_v1
       Family: DummyRunSidekiqshFamily
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyRunSidekiqshRole'
@@ -136,7 +139,7 @@ Resources:
           Essential: 'true'
           Image: 12537612.dkr.ecr.us-west-2.amazonaws.com/dummy-repo:1.1.1
           Links:
-            - 'redisContainer:redis'
+            - redisContainer:redis
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -147,6 +150,9 @@ Resources:
           Name: DummyContainer
           PortMappings:
             - ContainerPort: 7003
+          Secrets:
+            - Name: LABEL
+              ValueFrom: arn_secret_label_v1
         - Environment: []
           Essential: 'false'
           Image: redis:latest
