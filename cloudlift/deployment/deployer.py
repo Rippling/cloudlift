@@ -8,7 +8,7 @@ from cloudlift.deployment.ecs import DeployAction
 from cloudlift.exceptions import UnrecoverableException
 from colorclass import Color
 from terminaltables import SingleTable
-from cloudlift.deployment.troposphere_extensions import EnvironmentWithValuesFromSupport as EnvironmentX
+from cloudlift.config import secrets_manager
 
 
 def find_essential_container(container_definitions):
@@ -67,10 +67,19 @@ def deploy_and_wait(deployment, new_task_definition, color, timeout_seconds):
     return wait_for_finish(deployment, existing_events, color, deploy_end_time)
 
 
-def build_config(env_name, service_name, sample_env_file_path, essential_container_name):
-    environment_config = _get_parameter_store_config(service_name, env_name)
-    _validate_config_availability(sample_env_file_path, set(environment_config))
-    return {essential_container_name: _make_container_defn_env_conf(environment_config)}
+def build_config(env_name, service_name, sample_env_file_path, essential_container_name, config_prefix=None):
+    env_config_param_store = _get_parameter_store_config(service_name, env_name)
+    env_config_secrets_mgr = secrets_manager.get_config(config_prefix, env_name) if config_prefix else {}
+    _validate_config_availability(sample_env_file_path, set(env_config_param_store).union(set(env_config_secrets_mgr)))
+    return {essential_container_name: _merge_configs(env_config_secrets_mgr, env_config_param_store)}
+
+
+def _merge_configs(env_config_secrets_mgr, env_config_param_store):
+    env_conf_list = [{'Name': name, 'ValueFrom': env_config_secrets_mgr[name]} for name in env_config_secrets_mgr]
+    keys_not_in_secret_mgr = set(env_config_param_store) - set(env_config_secrets_mgr)
+    for key in keys_not_in_secret_mgr:
+        env_conf_list.append({'Name': key, 'Value': env_config_param_store[key]})
+    return env_conf_list
 
 
 def _get_parameter_store_config(service_name, env_name):
@@ -103,10 +112,6 @@ def read_config(file_content):
         key, value = line.split('=', 1)
         config[key] = value
     return config
-
-
-def _make_container_defn_env_conf(environment_config):
-    return [{'Name': name, 'Value': environment_config[name]} for name in environment_config]
 
 
 def wait_for_finish(action, existing_events, color, deploy_end_time):
