@@ -27,7 +27,7 @@ class TestSecretsManager(unittest.TestCase):
         mock_get_client_for.assert_called_once_with('secretsmanager', 'test')
         mock_client.get_secret_value.assert_called_once_with(SecretId='dummy-test')
         expected_config = {
-            "PORT": "arn:aws:secretsmanager:us-west-2:12345678:secret:dummy-test-QvDJsW:PORT:a1b87fb5-453e-42bd-a4f5-fdc0834854ef",
-            "LABEL": "arn:aws:secretsmanager:us-west-2:12345678:secret:dummy-test-QvDJsW:LABEL:a1b87fb5-453e-42bd-a4f5-fdc0834854ef",
+            "PORT": "arn:aws:secretsmanager:us-west-2:12345678:secret:dummy-test-QvDJsW:PORT::a1b87fb5-453e-42bd-a4f5-fdc0834854ef",
+            "LABEL": "arn:aws:secretsmanager:us-west-2:12345678:secret:dummy-test-QvDJsW:LABEL::a1b87fb5-453e-42bd-a4f5-fdc0834854ef",
         }
         self.assertEqual(expected_config, config)
