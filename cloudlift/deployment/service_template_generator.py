@@ -175,8 +175,9 @@ service is down',
 
     def _add_service(self, service_name, config):
         launch_type = self.LAUNCH_TYPE_FARGATE if 'fargate' in config else self.LAUNCH_TYPE_EC2
+        secrets_name_prefix = config.get('secrets_name_prefix')
         container_configurations = build_config(self.env, self.application_name, self.env_sample_file_path,
-                                                container_name(service_name), config.get('secrets_name_prefix'))
+                                                container_name(service_name), secrets_name_prefix)
         env_config = container_configurations[container_name(service_name)]['environment']
         secrets_config = container_configurations[container_name(service_name)]['secrets']
         log_config = self._gen_log_config(service_name)
@@ -190,6 +191,10 @@ service is down',
             "MemoryReservation": int(config['memory_reservation']),
             "Cpu": 0
         }
+        if secrets_name_prefix:
+            self.template.add_output(Output(service_name + "SecretsNamePrefix",
+                                            Description="AWS secrets manager name prefix to pull the secrets from",
+                                            Value=secrets_name_prefix))
 
         if 'http_interface' in config:
             container_definition_arguments['PortMappings'] = [
@@ -285,7 +290,7 @@ service is down',
                     Statement=[Statement(
                         Effect=Allow,
                         Action=[GetSecretValue],
-                        #As given here in https://docs.aws.amazon.com/code-samples/latest/catalog/iam_policies-secretsmanager-asm-user-policy-grants-access-to-secret-by-name-with-wildcard.json.html
+                        # As given here in https://docs.aws.amazon.com/code-samples/latest/catalog/iam_policies-secretsmanager-asm-user-policy-grants-access-to-secret-by-name-with-wildcard.json.html
                         Resource=[f"arn:aws:secretsmanager:{self.region}:{self.account_id}:secret:*-{self.env}-??????"]
                     )]
                 )
