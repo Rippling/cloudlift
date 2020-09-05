@@ -26,13 +26,13 @@ class ServiceInformationFetcher(object):
                     stack['Outputs']
                 )
             )
-            stack_outputs = {output['OutputKey']: output['OutputValue'] for output in stack['Outputs'] }
+            stack_outputs = {output['OutputKey']: output['OutputValue'] for output in stack['Outputs']}
             self.service_info = {}
             for service_output in ecs_service_outputs:
                 ecs_service_logical_name = service_output['OutputKey'].replace("EcsServiceName", "")
                 self.service_info[ecs_service_logical_name] = {
                     "ecs_service_name": service_output['OutputValue'],
-                    "secrets_name_prefix":  stack_outputs.get(ecs_service_logical_name+'SecretsNamePrefix')
+                    "secrets_name_prefix": stack_outputs.get(ecs_service_logical_name + 'SecretsNamePrefix')
                 }
 
             self.ecs_service_names = [svc_name['OutputValue'] for svc_name in ecs_service_outputs]
@@ -125,7 +125,9 @@ fetched.")
         except Exception:
             return None
 
-    # TODO: Test cover this
+    # TODO: Test cover this. Also this can use boto ecs client describe_services method. That can describe up to 10
+    #  services in one call. It would be simpler implementation to test as well. We can also use self.service_info
+    #  instead of ecs_service_logical_name_mappings and simplify the init_stack_info logic
     def fetch_current_desired_count(self):
         desired_counts = {}
         try:
