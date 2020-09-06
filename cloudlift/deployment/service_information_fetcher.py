@@ -50,7 +50,7 @@ class ServiceInformationFetcher(object):
     def get_current_version(self):
         commit_sha = self._fetch_current_task_definition_tag()
         log_warning(f"Currently deployed tag: {commit_sha}")
-        return commit_sha
+        return str(commit_sha)
 
     def get_instance_ids(self):
         instance_ids = {}

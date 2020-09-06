@@ -33,13 +33,12 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
     essential_container = find_essential_container(task_definition[u'containerDefinitions'])
     container_configurations = build_config(env_name, service_name, sample_env_file_path, essential_container,
                                             secrets_name_prefix)
-
     if complete_image_uri is not None:
         task_definition.set_images(essential_container, deploy_version_tag, **{essential_container: complete_image_uri})
     else:
         task_definition.set_images(essential_container, deploy_version_tag)
     for container in task_definition.containers:
-        env_config = container_configurations.get(container[u'name'], [])
+        env_config = container_configurations.get(container['name'], {})
         task_definition.apply_container_environment_and_secrets(container, env_config)
     print_task_diff(ecs_service_name, task_definition.diff, color)
     new_task_definition = deployment.update_task_definition(task_definition)
