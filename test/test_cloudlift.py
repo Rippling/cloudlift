@@ -10,7 +10,9 @@ import json
 from cloudlift.config import ServiceConfiguration, VERSION
 from cloudlift.deployment.service_creator import ServiceCreator
 from cloudlift.deployment.service_updater import ServiceUpdater
+from pathlib import Path
 
+TEST_DIR = Path(__file__).resolve().parent
 
 def setup_module(module):
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -106,7 +108,7 @@ def test_cloudlift_can_deploy_to_ec2(keep_resources):
     waiter = cfn_client.get_waiter('stack_delete_complete')
     waiter.wait(StackName=stack_name)
     print("completed delete")
-    os.chdir('dummy')
+    os.chdir(f'{TEST_DIR}/dummy')
     print("adding configuration to parameter store")
     _set_param_store_env(environment_name, service_name, {'PORT': '80', 'LABEL': 'Demo', 'REDIS_HOST': 'redis'})
     with patch.object(ServiceConfiguration, 'edit_config',
@@ -133,7 +135,7 @@ def test_cloudlift_service_with_secrets_manager_config(keep_resources):
     waiter = cfn_client.get_waiter('stack_delete_complete')
     waiter.wait(StackName=stack_name)
     print("completed delete")
-    os.chdir('dummy')
+    os.chdir(f'{TEST_DIR}/dummy')
     print("adding configuration to parameter store")
     _set_param_store_env(environment_name, service_name, {'PORT': '80', 'LABEL': 'Demo', 'REDIS_HOST': 'redis'})
     _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager'})
