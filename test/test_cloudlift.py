@@ -2,10 +2,10 @@ import os
 import time
 
 import boto3
-import click
 import requests
 import urllib3
 from mock import patch
+import json
 
 from cloudlift.config import ServiceConfiguration, VERSION
 from cloudlift.deployment.service_creator import ServiceCreator
@@ -22,6 +22,33 @@ def mocked_service_config(cls, *args, **kwargs):
         "services": {
             "Dummy": {
                 "command": None,
+                "sidecars": [
+                    {"name": "redis", "image": "redis", "memory_reservation": 256}
+                ],
+                "http_interface": {
+                    "alb": {
+                        "create_new": True
+                    },
+                    "container_port": 80,
+                    "internal": False,
+                    "restrict_access_to": [
+                        "0.0.0.0/0"
+                    ],
+                    "health_check_path": "/elb-check"
+                },
+                "memory_reservation": 512
+            }
+        }
+    }
+
+
+def mocked_service_with_secrets_manager_config(cls, *args, **kwargs):
+    return {
+        "cloudlift_version": VERSION,
+        "services": {
+            "Dummy": {
+                "command": None,
+                "secrets_name_prefix": service_name,
                 "sidecars": [
                     {"name": "redis", "image": "redis", "memory_reservation": 256}
                 ],
@@ -93,6 +120,34 @@ def test_cloudlift_can_deploy_to_ec2(keep_resources):
     service_url = [x for x in outputs if x["OutputKey"] == "DummyURL"][0]['OutputValue']
     content_matched = wait_until(
         lambda: match_page_content(service_url, 'This is dummy app. Label: Demo. Redis PING: PONG'), 60)
+    assert content_matched
+    if not keep_resources:
+        cfn_client.delete_stack(StackName=stack_name)
+
+
+def test_cloudlift_service_with_secrets_manager_config(keep_resources):
+    cfn_client = boto3.client('cloudformation')
+    stack_name = f'{service_name}-{environment_name}'
+    cfn_client.delete_stack(StackName=stack_name)
+    print("initiated delete")
+    waiter = cfn_client.get_waiter('stack_delete_complete')
+    waiter.wait(StackName=stack_name)
+    print("completed delete")
+    os.chdir('dummy')
+    print("adding configuration to parameter store")
+    _set_param_store_env(environment_name, service_name, {'PORT': '80', 'LABEL': 'Demo', 'REDIS_HOST': 'redis'})
+    _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager'})
+    with patch.object(ServiceConfiguration, 'edit_config',
+                      new=mocked_service_with_secrets_manager_config):
+        with patch.object(ServiceConfiguration, 'get_config',
+                          new=mocked_service_with_secrets_manager_config):
+            ServiceCreator(service_name, environment_name).create()
+
+    ServiceUpdater(service_name, environment_name, None, timeout_seconds=600).run()
+    outputs = cfn_client.describe_stacks(StackName=stack_name)['Stacks'][0]['Outputs']
+    service_url = [x for x in outputs if x["OutputKey"] == "DummyURL"][0]['OutputValue']
+    content_matched = wait_until(
+        lambda: match_page_content(service_url, 'This is dummy app. Label: Value from secret manager. Redis PING: PONG'), 60)
     assert content_matched
     if not keep_resources:
         cfn_client.delete_stack(StackName=stack_name)
@@ -174,3 +229,12 @@ def _set_param_store_env(env_name, svc_name, env_config):
             Type="SecureString",
             KeyId='alias/aws/ssm', Overwrite=True
         )
+
+
+def _set_secrets_manager_config(secret_name, config):
+    client = boto3.client('secretsmanager')
+    secret_string = json.dumps(config)
+    try:
+        client.put_secret_value(SecretId=secret_name, SecretString=secret_string)
+    except client.exceptions.ResourceNotFoundException:
+        client.create_secret(Name=secret_name, SecretString=secret_string)
