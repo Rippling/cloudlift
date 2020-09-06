@@ -81,45 +81,18 @@ def test_cloudlift_can_deploy_to_ec2(keep_resources):
     print("completed delete")
     os.chdir('dummy')
     print("adding configuration to parameter store")
-    ssm_client = boto3.client('ssm')
-    ssm_client.put_parameter(
-        Name=f"/{environment_name}/{service_name}/PORT",
-        Value="80",
-        Type="SecureString",
-        KeyId='alias/aws/ssm', Overwrite=True
-    )
-    ssm_client.put_parameter(
-        Name=f"/{environment_name}/{service_name}/LABEL",
-        Value="Demo",
-        Type="SecureString",
-        KeyId='alias/aws/ssm',
-        Overwrite=True
-    )
-    ssm_client.put_parameter(
-        Name=f"/{environment_name}/{service_name}/REDIS_HOST",
-        Value="redis",
-        Type="SecureString",
-        KeyId='alias/aws/ssm',
-        Overwrite=True
-    )
+    _set_param_store_env(environment_name, service_name, {'PORT': '80', 'LABEL': 'Demo', 'REDIS_HOST': 'redis'})
     with patch.object(ServiceConfiguration, 'edit_config',
                       new=mocked_service_config):
         with patch.object(ServiceConfiguration, 'get_config',
                           new=mocked_service_config):
-            ServiceCreator(service_name, environment_name, ).create()
+            ServiceCreator(service_name, environment_name).create()
 
     ServiceUpdater(service_name, environment_name, None, timeout_seconds=600).run()
-    outputs = cfn_client.describe_stacks(
-        StackName=stack_name
-    )['Stacks'][0]['Outputs']
-    service_url = [
-        x for x in outputs if x["OutputKey"] == "DummyURL"
-    ][0]['OutputValue']
+    outputs = cfn_client.describe_stacks(StackName=stack_name)['Stacks'][0]['Outputs']
+    service_url = [x for x in outputs if x["OutputKey"] == "DummyURL"][0]['OutputValue']
     content_matched = wait_until(
-        lambda: match_page_content(
-            service_url,
-            'This is dummy app. Label: Demo. Redis PING: PONG'
-        ), 60)
+        lambda: match_page_content(service_url, 'This is dummy app. Label: Demo. Redis PING: PONG'), 60)
     assert content_matched
     if not keep_resources:
         cfn_client.delete_stack(StackName=stack_name)
@@ -190,3 +163,14 @@ def wait_until(predicate, timeout, period=1, *args, **kwargs):
         print("sleeping and gonna retry...")
         time.sleep(period)
     return False
+
+
+def _set_param_store_env(env_name, svc_name, env_config):
+    ssm_client = boto3.client('ssm')
+    for env_var in env_config:
+        ssm_client.put_parameter(
+            Name=f"/{env_name}/{svc_name}/{env_var}",
+            Value=env_config[env_var],
+            Type="SecureString",
+            KeyId='alias/aws/ssm', Overwrite=True
+        )
