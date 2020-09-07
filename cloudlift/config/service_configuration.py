@@ -317,6 +317,12 @@ class ServiceConfiguration(object):
                 },
                 "secrets_name_prefix":{
                     "type": "string",
+                },
+                "task_role_attached_managed_policy_arns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             },
             "required": ["memory_reservation", "command"]

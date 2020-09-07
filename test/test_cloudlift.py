@@ -38,6 +38,7 @@ def mocked_service_config(cls, *args, **kwargs):
                     ],
                     "health_check_path": "/elb-check"
                 },
+                "task_role_attached_managed_policy_arns": ["arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"],
                 "memory_reservation": 512
             }
         }
@@ -65,6 +66,7 @@ def mocked_service_with_secrets_manager_config(cls, *args, **kwargs):
                     ],
                     "health_check_path": "/elb-check"
                 },
+                "task_role_attached_managed_policy_arns": ["arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"],
                 "memory_reservation": 512
             }
         }
@@ -120,8 +122,8 @@ def test_cloudlift_can_deploy_to_ec2(keep_resources):
     ServiceUpdater(service_name, environment_name, None, timeout_seconds=600).run()
     outputs = cfn_client.describe_stacks(StackName=stack_name)['Stacks'][0]['Outputs']
     service_url = [x for x in outputs if x["OutputKey"] == "DummyURL"][0]['OutputValue']
-    content_matched = wait_until(
-        lambda: match_page_content(service_url, 'This is dummy app. Label: Demo. Redis PING: PONG'), 60)
+    content_matched = wait_until(lambda: match_page_content(service_url, 'This is dummy app. Label: Demo. Redis '
+                                                                         'PING: PONG. AWS EC2 READ ACCESS: True'), 60)
     assert content_matched
     if not keep_resources:
         cfn_client.delete_stack(StackName=stack_name)
@@ -148,8 +150,8 @@ def test_cloudlift_service_with_secrets_manager_config(keep_resources):
     ServiceUpdater(service_name, environment_name, None, timeout_seconds=600).run()
     outputs = cfn_client.describe_stacks(StackName=stack_name)['Stacks'][0]['Outputs']
     service_url = [x for x in outputs if x["OutputKey"] == "DummyURL"][0]['OutputValue']
-    content_matched = wait_until(
-        lambda: match_page_content(service_url, 'This is dummy app. Label: Value from secret manager. Redis PING: PONG'), 60)
+    content_matched = wait_until(lambda: match_page_content(service_url, 'This is dummy app. Label: Demo. Redis '
+                                                                         'PING: PONG. AWS EC2 READ ACCESS: True'), 60)
     assert content_matched
     if not keep_resources:
         cfn_client.delete_stack(StackName=stack_name)
