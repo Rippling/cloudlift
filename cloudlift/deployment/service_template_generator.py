@@ -275,31 +275,7 @@ service is down',
                 ]
             )
         ))
-        # https://docs.aws.amazon.com/code-samples/latest/catalog/iam_policies-secretsmanager-asm-user-policy-grants-access-to-secret-by-name-with-wildcard.json.html
-        secrets_arn_regex = f"arn:aws:secretsmanager:{self.region}:{self.account_id}:secret:*-{self.env}-??????"
-        task_execution_role = self.template.add_resource(Role(
-            service_name + "TaskExecutionRole",
-            AssumeRolePolicyDocument=PolicyDocument(
-                Statement=[
-                    Statement(
-                        Effect=Allow,
-                        Action=[AssumeRole],
-                        Principal=Principal("Service", ["ecs-tasks.amazonaws.com"])
-                    )
-                ]
-            ),
-            Policies=[
-                Policy(PolicyName=service_name + "TaskExecutionRolePolicy",
-                       PolicyDocument=PolicyDocument(
-                           Statement=[
-                               Statement(Effect=Allow, Action=[GetSecretValue], Resource=[secrets_arn_regex]),
-                               Statement(Effect=Allow,
-                                         Action=[GetAuthorizationToken, BatchCheckLayerAvailability,
-                                                 GetDownloadUrlForLayer, BatchGetImage, CreateLogStream, PutLogEvents],
-                                         Resource=["*"])
-                           ]
-                       ))]
-        ))
+        task_execution_role = self._add_task_execution_role(service_name, secrets_name_prefix)
 
         launch_type_td = {}
         if launch_type == self.LAUNCH_TYPE_FARGATE:
@@ -527,6 +503,37 @@ service is down',
                 )]
             )
         )
+
+    def _add_task_execution_role(self, service_name, secrets_name_prefix):
+        # https://docs.aws.amazon.com/code-samples/latest/catalog/iam_policies-secretsmanager-asm-user-policy-grants-access-to-secret-by-name-with-wildcard.json.html
+        allow_secrets = [Statement(Effect=Allow, Action=[GetSecretValue], Resource=[
+            f"arn:aws:secretsmanager:{self.region}:{self.account_id}:secret:{secrets_name_prefix}-{self.env}-??????"])] \
+            if secrets_name_prefix else []
+
+        task_execution_role = self.template.add_resource(Role(
+            service_name + "TaskExecutionRole",
+            AssumeRolePolicyDocument=PolicyDocument(
+                Statement=[
+                    Statement(
+                        Effect=Allow,
+                        Action=[AssumeRole],
+                        Principal=Principal("Service", ["ecs-tasks.amazonaws.com"])
+                    )
+                ]
+            ),
+            Policies=[
+                Policy(PolicyName=service_name + "TaskExecutionRolePolicy",
+                       PolicyDocument=PolicyDocument(
+                           Statement=[
+                               *allow_secrets,
+                               Statement(Effect=Allow,
+                                         Action=[GetAuthorizationToken, BatchCheckLayerAvailability,
+                                                 GetDownloadUrlForLayer, BatchGetImage, CreateLogStream, PutLogEvents],
+                                         Resource=["*"])
+                           ]
+                       ))]
+        ))
+        return task_execution_role
 
     def _gen_container_definitions_for_sidecar(self, sidecar, log_config, env_config):
         cd = {}

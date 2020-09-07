@@ -231,11 +231,6 @@ Resources:
         - PolicyDocument:
             Statement:
               - Action:
-                  - secretsmanager:GetSecretValue
-                Effect: Allow
-                Resource:
-                  - arn:aws:secretsmanager:us-west-2:12537612:secret:*-staging-??????
-              - Action:
                   - ecr:GetAuthorizationToken
                   - ecr:BatchCheckLayerAvailability
                   - ecr:GetDownloadUrlForLayer
