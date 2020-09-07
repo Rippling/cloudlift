@@ -25,7 +25,6 @@ class EnvironmentCreator(object):
         self.configuration = environment_configuration.get_config()[self.environment]
         self.cluster_name = get_cluster_name(environment)
         self.client = get_client_for('cloudformation', self.environment)
-        self.key_name = self.configuration['cluster']['key_name']
 
     def run(self):
         try:
@@ -54,16 +53,7 @@ class EnvironmentCreator(object):
                 environment_stack_template_body, self.environment, self.cluster_name)
             environment_stack = self.client.create_stack(
                 StackName=self.cluster_name,
-                Parameters=[
-                    {
-                        'ParameterKey': 'KeyPair',
-                        'ParameterValue': self.key_name,
-                    },
-                    {
-                        'ParameterKey': 'Environment',
-                        'ParameterValue': self.environment,
-                    }
-                ],
+                Parameters=self.__get_parameter_values(),
                 OnFailure='DO_NOTHING',
                 Capabilities=['CAPABILITY_NAMED_IAM'],
                 **options,
@@ -106,6 +96,18 @@ class EnvironmentCreator(object):
             raise e
             # log_err("Something went wrong")
             # TODO: Describe error here.
+
+    def __get_parameter_values(self):
+        parameters = [
+           {
+               'ParameterKey': 'KeyPair',
+               'ParameterValue': self.configuration["cluster"]["key_name"],
+           },
+           {
+               'ParameterKey': 'Environment',
+               'ParameterValue': self.environment,
+           }
+        ]
 
     def __get_desired_count(self):
         try:
