@@ -108,6 +108,7 @@ class EnvironmentCreator(object):
                'ParameterValue': self.environment,
            }
         ]
+        return parameters
 
     def __get_desired_count(self):
         try:

@@ -119,7 +119,7 @@ class EnvironmentConfiguration(object):
             private_subnet_2_cidr = prompt(
                 "Private Subnet 2 CIDR", default=list(vpc_cidr.subnets(new_prefix=22))[3])
             return {
-                "create-new": True,
+                "create_new": True,
                 "cidr": str(vpc_cidr),
                 "nat-gateway": {
                     "elastic-ip-allocation-id": nat_eip
@@ -148,21 +148,23 @@ class EnvironmentConfiguration(object):
             private_subnet_count = prompt("No of private subnets in the VPC", default=2)
             private_subnet_ids = [prompt("Private Subnet {} ID".format(idx)) for idx in
                                    range(1, private_subnet_count + 1)]
-            public_subnet_count = prompt("No of private subnets in the VPC", default=2)
+            public_subnet_count = prompt("No of public subnets in the VPC", default=2)
             public_subnet_ids = [prompt("Public Subnet {} ID".format(idx)) for idx in
                                   range(1, public_subnet_count + 1)]
             return {
-                "create-new": False,
+                "create_new": False,
                 "id": vpc_id,
-                "public": {
-                    "subnet-{}".format(idx + 1): {
-                        "id": private_subnet_ids[idx]
-                    } for idx in range(private_subnet_count)
-                },
-                "private": {
-                    "subnet-{}".format(idx + 1): {
-                        "id": public_subnet_ids[idx]
-                    } for idx in range(public_subnet_count)
+                "subnets": {
+                    "public": {
+                        "subnet-{}".format(idx + 1): {
+                            "id": private_subnet_ids[idx]
+                        } for idx in range(private_subnet_count)
+                    },
+                    "private": {
+                        "subnet-{}".format(idx + 1): {
+                            "id": public_subnet_ids[idx]
+                        } for idx in range(public_subnet_count)
+                    }
                 }
             }
 
@@ -302,7 +304,7 @@ class EnvironmentConfiguration(object):
                             "oneOf": [
                                 {
                                     "properties": {
-                                        "create-new": {
+                                        "create_new": {
                                             "enum": [True]
                                         },
                                         "cidr": {
@@ -394,7 +396,7 @@ class EnvironmentConfiguration(object):
                                 },
                                 {
                                     "properties": {
-                                        "create-new": {
+                                        "create_new": {
                                             "enum": [False]
                                         },
                                         "subnets": {
@@ -448,8 +450,6 @@ class EnvironmentConfiguration(object):
                                 }
                             ],
                             "required": [
-                                "cidr",
-                                "nat-gateway",
                                 "subnets"
                             ]
                         }

@@ -76,27 +76,26 @@ class ClusterTemplateGenerator(TemplateGenerator):
             self._create_database_subnet_group()
         else:
             self._add_vpc(config['id'])
-            self.public_subnets = self._add_subnets(config['subnets']['public'])
-            self.private_subnets = self._add_subnets(config['subnets']['private'])
+            self.public_subnets = self._add_subnets(config['subnets']['public'], 'Public')
+            self.private_subnets = self._add_subnets(config['subnets']['private'], 'Private')
         self._create_elasicache_subnet_group()
 
     def _add_vpc(self, vpc_id):
         self.vpc = Parameter(
             camelcase("{self.env}Vpc".format(**locals())),
-            Type="AWS::EC2::VPC",
+            Type="AWS::EC2::VPC::Id",
             Default=vpc_id
         )
         self.template.add_parameter(self.vpc)
 
-    def _add_subnets(self, subnet_configs):
+    def _add_subnets(self, subnet_configs, subnet_type):
         subnets = []
         for subnet_title, subnet_config in subnet_configs.items():
-            subnet_title = camelcase("{self.env}Public".format(**locals())) + \
+            subnet_title = camelcase("{self.env}{subnet_type}".format(**locals())) + \
                            pascalcase(re.sub('[^a-zA-Z0-9*]', '', subnet_title))
-            subnet_name = "{self.env}-public-{subnet_count}".format(**locals())
             subnet = Parameter(
                 subnet_title,
-                Type="AWS::EC2::Subnet",
+                Type="AWS::EC2::Subnet::Id",
                 Default=subnet_config['id']
             )
             subnets.append(subnet)
