@@ -78,7 +78,7 @@ class EnvironmentCreator(object):
                 self.client,
                 environment_stack_template_body,
                 self.cluster_name,
-                self.key_name,
+                self.__get_parameter_values(),
                 self.environment
             )
             self.existing_events = get_stack_events(
