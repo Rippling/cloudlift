@@ -16,7 +16,7 @@ from stringcase import spinalcase
 from cloudlift.utils import chunks
 
 DEPLOYMENT_COLORS = ['blue', 'magenta', 'white', 'cyan']
-CHUNK_SIZE = 10
+CHUNK_SIZE = 4
 
 
 class ServiceUpdater(object):
