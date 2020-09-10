@@ -39,7 +39,7 @@ class ClusterTemplateGenerator(TemplateGenerator):
             self.desired_instances = desired_instances
         self.private_subnets = []
         self.public_subnets = []
-        self._get_availability_zones()
+        self.availability_zones = self._get_availability_zones()
 
     def generate_cluster(self):
         self.__validate_parameters()
@@ -55,7 +55,7 @@ class ClusterTemplateGenerator(TemplateGenerator):
     def _get_availability_zones(self):
         client = get_client_for('ec2', self.env)
         aws_azs = client.describe_availability_zones()['AvailabilityZones']
-        self.availability_zones = [
+        return [
             zone['ZoneName'] for zone in aws_azs
         ][:2]
 
@@ -66,7 +66,7 @@ class ClusterTemplateGenerator(TemplateGenerator):
 
     # TODO: clean up
     def _setup_network(self, config):
-        if config['create_new']:
+        if config.get("create_new", True):
             self._create_vpc(config['cidr'])
             self._create_public_network(config['subnets']['public'])
             self._create_private_network(
