@@ -584,20 +584,23 @@ for cluster for 15 minutes.',
         self.notification_sns_arn = Parameter("NotificationSnsArn",
                                               Description='',
                                               Type="String",
-                                              Default=self.notifications_arn)
+                                               Default=self.notifications_arn)
         self.template.add_parameter(self.notification_sns_arn)
         self.template.add_parameter(Parameter(
             "InstanceType", Description='', Type="String", Default=self.configuration['cluster']['instance_type']))
 
-    def _add_mappings(self):
+    def _get_ami_id(self):
         # Pick from https://docs.aws.amazon.com/AmazonECS/latest/developerguide/al2ami.html
         ssm_client = get_client_for('ssm', self.env)
         ami_response = ssm_client.get_parameter(
             Name='/aws/service/ecs/optimized-ami/amazon-linux-2/recommended')
-        ami_id = json.loads(ami_response['Parameter']['Value'])['image_id']
+        return json.loads(ami_response['Parameter']['Value'])['image_id']
+
+    def _add_mappings(self):
+
         region = get_region_for_environment(self.env)
         self.template.add_mapping('AWSRegionToAMI', {
-            region: {"AMI": ami_id}
+            region: {"AMI": self._get_ami_id()}
         })
 
     def _add_cluster_outputs(self):
