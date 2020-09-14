@@ -52,16 +52,16 @@ Outputs:
     Description: VPC in which environment is setup
     Value: !Ref 'test3Vpc'
   PrivateSubnet1:
-    Description: ID of the 1st subnet
+    Description: ID of private subnet 1
     Value: !Ref 'test3PrivateSubnet1'
   PrivateSubnet2:
-    Description: ID of the 2nd subnet
+    Description: ID of private subnet 2
     Value: !Ref 'test3PrivateSubnet2'
   PublicSubnet1:
-    Description: ID of the 1st subnet
+    Description: ID of public subnet 1
     Value: !Ref 'test3PublicSubnet1'
   PublicSubnet2:
-    Description: ID of the 2nd subnet
+    Description: ID of public subnet 2
     Value: !Ref 'test3PublicSubnet2'
   AutoScalingGroup:
     Description: AutoScaling group for ECS container instances
