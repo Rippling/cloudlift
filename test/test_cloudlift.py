@@ -14,6 +14,7 @@ from pathlib import Path
 
 TEST_DIR = Path(__file__).resolve().parent
 
+
 def setup_module(module):
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
