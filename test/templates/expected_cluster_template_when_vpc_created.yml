@@ -370,8 +370,8 @@ Resources:
       MinSize: !Ref 'MinSize'
       MaxSize: !Ref 'MaxSize'
       VPCZoneIdentifier:
-        - !Ref 'test2PrivateSubnet2'
         - !Ref 'test2PrivateSubnet1'
+        - !Ref 'test2PrivateSubnet2'
       LaunchConfigurationName: !Ref 'LaunchConfiguration'
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy: {}

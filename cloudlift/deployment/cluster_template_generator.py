@@ -33,6 +33,7 @@ class ClusterTemplateGenerator(TemplateGenerator):
     def __init__(self, environment, environment_configuration, desired_instances=None):
         super(ClusterTemplateGenerator, self).__init__(environment)
         self.configuration = environment_configuration
+        self.ami_id = self.configuration['cluster'].get('ami_id', None)
         if desired_instances is None:
             self.desired_instances = self.configuration['cluster']['min_instances']
         else:
@@ -536,7 +537,6 @@ for cluster for 15 minutes.',
         # , PauseTime='PT15M', WaitOnResourceSignals=True, MaxBatchSize=1, MinInstancesInService=1)
         up = AutoScalingRollingUpdate('AutoScalingRollingUpdate')
         # TODO: clean up
-        subnets = list(self.private_subnets)
         self.auto_scaling_group = AutoScalingGroup(
             "AutoScalingGroup",
             UpdatePolicy=up,
@@ -550,7 +550,7 @@ for cluster for 15 minutes.',
             ],
             MinSize=Ref('MinSize'),
             MaxSize=Ref('MaxSize'),
-            VPCZoneIdentifier=[Ref(subnets.pop()), Ref(subnets.pop())],
+            VPCZoneIdentifier=[Ref(subnet) for subnet in self.private_subnets],
             LaunchConfigurationName=Ref(launch_configuration),
             CreationPolicy=CreationPolicy(
                 ResourceSignal=ResourceSignal(Timeout='PT15M')
@@ -590,6 +590,8 @@ for cluster for 15 minutes.',
             "InstanceType", Description='', Type="String", Default=self.configuration['cluster']['instance_type']))
 
     def _get_ami_id(self):
+        if self.ami_id:
+            return self.ami_id
         # Pick from https://docs.aws.amazon.com/AmazonECS/latest/developerguide/al2ami.html
         ssm_client = get_client_for('ssm', self.env)
         ami_response = ssm_client.get_parameter(

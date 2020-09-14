@@ -35,7 +35,7 @@ Metadata:
 Mappings:
   AWSRegionToAMI:
     us-west-2:
-      AMI: ami-04bb74f3ffa3aa3e2
+      AMI: ami-088bb4cd2f62fc0e1
 Outputs:
   StackId:
     Description: The unique ID of the stack. To be supplied to circle CI environment
@@ -236,8 +236,8 @@ Resources:
       MinSize: !Ref 'MinSize'
       MaxSize: !Ref 'MaxSize'
       VPCZoneIdentifier:
-        - !Ref 'test3PrivateSubnet2'
         - !Ref 'test3PrivateSubnet1'
+        - !Ref 'test3PrivateSubnet2'
       LaunchConfigurationName: !Ref 'LaunchConfiguration'
     Type: AWS::AutoScaling::AutoScalingGroup
     UpdatePolicy: {}

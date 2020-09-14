@@ -15,7 +15,8 @@ environment_config_when_vpc_parameterized = {
             "instance_type": "m5.xlarge",
             "key_name": "test2-cluster",
             "max_instances": 5,
-            "min_instances": 1
+            "min_instances": 1,
+            "ami_id": "ami-088bb4cd2f62fc0e1",
         },
         "environment": {
             "notifications_arn": "arn:aws:sns:us-west-2:388418451245:test2-cluster",
@@ -109,15 +110,13 @@ class TestClusterTemplateGenerator(TestCase):
     @staticmethod
     @patch("cloudlift.config.region.EnvironmentConfiguration")
     @patch("cloudlift.deployment.ClusterTemplateGenerator._get_availability_zones")
-    @patch("cloudlift.deployment.ClusterTemplateGenerator._get_ami_id")
-    def helper_mock_create_cluster(env_config, mock_get_ami_id, mock_get_avalability_zones, mock_environment_config):
+    def helper_mock_create_cluster(env_config, mock_get_avalability_zones, mock_environment_config):
         environment = list(env_config.keys())[0]
         mock_env_config_inst = mock_environment_config.return_value
         mock_env_config_inst.get_config.return_value = env_config
         mock_env_config_inst._get_table.return_value = None
         mock_env_config_inst.env = PropertyMock(return_value=environment)
         mock_get_avalability_zones.return_value = ['us-west-2a', 'us-west-2b']
-        mock_get_ami_id.return_value = ami_for_test
         template_generator = ClusterTemplateGenerator(environment, env_config[environment])
 
         return template_generator.generate_cluster()
@@ -127,11 +126,11 @@ class TestClusterTemplateGenerator(TestCase):
         template_file_path = os.path.join(os.path.dirname(__file__),
                                           '../templates/expected_cluster_template_when_vpc_parameterized.yml')
         with(open(template_file_path)) as expected_template_file:
-            assert to_json(''.join(expected_template_file.readlines())) == to_json(generated_template)
+            assert generated_template == ''.join(expected_template_file.readlines())
 
     def test_create_cluster_when_vpc_created(self):
         generated_template = self.helper_mock_create_cluster(environment_config_when_vpc_created)
         template_file_path = os.path.join(os.path.dirname(__file__),
                                           '../templates/expected_cluster_template_when_vpc_created.yml')
         with(open(template_file_path)) as expected_template_file:
-            assert to_json(''.join(expected_template_file.readlines())) == to_json(generated_template)
+            assert generated_template == ''.join(expected_template_file.readlines())
