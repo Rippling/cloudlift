@@ -157,14 +157,14 @@ class EnvironmentConfiguration(object):
                 "subnets": {
                     "public": {
                         "subnet-{}".format(idx + 1): {
-                            "id": private_subnet_ids[idx]
-                        } for idx in range(private_subnet_count)
+                            "id": public_subnet_ids[idx]
+                        } for idx in range(public_subnet_count)
                     },
                     "private": {
                         "subnet-{}".format(idx + 1): {
-                            "id": public_subnet_ids[idx]
-                        } for idx in range(public_subnet_count)
-                    }
+                            "id": private_subnet_ids[idx]
+                        } for idx in range(private_subnet_count)
+                    },
                 }
             }
 
