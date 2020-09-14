@@ -59,8 +59,8 @@ def deploy_and_wait(deployment, new_task_definition, color, timeout_seconds):
     return wait_for_finish(deployment, existing_events, color, deploy_end_time)
 
 
-def build_config(env_name, service_name, sample_env_file_path, essential_container_name, secrets_name_prefix=None):
-    env_config_secrets_mgr = secrets_manager.get_config(secrets_name_prefix, env_name) if secrets_name_prefix else {}
+def build_config(env_name, service_name, sample_env_file_path, essential_container_name, secrets_name=None):
+    env_config_secrets_mgr = secrets_manager.get_config(secrets_name, env_name) if secrets_name else {}
     env_config_param_store = _get_parameter_store_config(service_name, env_name)
     keys_not_in_secret_mgr = set(env_config_param_store) - set(env_config_secrets_mgr)
     env_config = {k: env_config_param_store[k] for k in keys_not_in_secret_mgr}
