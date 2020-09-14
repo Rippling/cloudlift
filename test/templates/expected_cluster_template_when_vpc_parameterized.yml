@@ -47,7 +47,7 @@ Outputs:
   CloudliftOptions:
     Description: Options used with cloudlift when building this cluster
     Value: '{"env": "test3", "min_instances": "1", "max_instances": "5", "instance_type":
-      "m5.xlarge", "key_name": "test2-cluster", "cloudlift_version": "1.10.1"}'
+      "m5.xlarge", "key_name": "test2-cluster", "cloudlift_version": "test-version"}'
   VPC:
     Description: VPC in which environment is setup
     Value: !Ref 'test3Vpc'

@@ -92,6 +92,7 @@ environment_config_when_vpc_created = {
 
 class TestClusterTemplateGenerator(TestCase):
     @classmethod
+    @patch("cloudlift.deployment.cluster_template_generator.VERSION", "test-version")
     @patch("cloudlift.config.environment_configuration.EnvironmentConfiguration.get_config")
     @patch("cloudlift.config.environment_configuration.EnvironmentConfiguration._get_table")
     @patch("cloudlift.deployment.cluster_template_generator.ClusterTemplateGenerator._get_availability_zones")
@@ -108,6 +109,7 @@ class TestClusterTemplateGenerator(TestCase):
             assert to_json(''.join(expected_template_file.readlines())) == to_json(generated_template)
 
     @staticmethod
+    @patch("cloudlift.deployment.cluster_template_generator.VERSION", "test-version")
     @patch("cloudlift.config.region.EnvironmentConfiguration")
     @patch("cloudlift.deployment.ClusterTemplateGenerator._get_availability_zones")
     def helper_mock_create_cluster(env_config, mock_get_avalability_zones, mock_environment_config):
