@@ -127,8 +127,8 @@ Resources:
       CacheSubnetGroupName: test3-subnet
       Description: test3 subnet group
       SubnetIds:
-        - !Ref 'test3PrivateSubnet1'
         - !Ref 'test3PrivateSubnet2'
+        - !Ref 'test3PrivateSubnet1'
     Type: AWS::ElastiCache::SubnetGroup
   test3LogGroup:
     Properties:

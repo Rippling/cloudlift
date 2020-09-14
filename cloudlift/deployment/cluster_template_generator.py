@@ -273,7 +273,7 @@ class ClusterTemplateGenerator(TemplateGenerator):
             "ElasticacheSubnetGroup",
             CacheSubnetGroupName="{self.env}-subnet".format(**locals()),
             Description="{self.env} subnet group".format(**locals()),
-            SubnetIds=[Ref(subnet) for subnet in self.private_subnets]
+            SubnetIds=[Ref(subnet) for subnet in reversed(self.private_subnets)]
         )
         self.template.add_resource(elasticache_subnet_group)
 

@@ -261,8 +261,8 @@ Resources:
       CacheSubnetGroupName: test2-subnet
       Description: test2 subnet group
       SubnetIds:
-        - !Ref 'test2PrivateSubnet1'
         - !Ref 'test2PrivateSubnet2'
+        - !Ref 'test2PrivateSubnet1'
     Type: AWS::ElastiCache::SubnetGroup
   test2LogGroup:
     Properties:
