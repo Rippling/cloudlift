@@ -21,7 +21,7 @@ def find_essential_container(container_definitions):
 
 def deploy_new_version(client, cluster_name, ecs_service_name,
                        deploy_version_tag, service_name, sample_env_file_path,
-                       timeout_seconds, env_name, color='white', complete_image_uri=None, secrets_name_prefix=None):
+                       timeout_seconds, env_name, secrets_name, color='white', complete_image_uri=None):
     log_bold("Starting to deploy " + ecs_service_name)
     deployment = DeployAction(client, cluster_name, ecs_service_name)
     if deployment.service.desired_count == 0:
@@ -32,7 +32,7 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
     task_definition = deployment.get_current_task_definition(deployment.service)
     essential_container = find_essential_container(task_definition[u'containerDefinitions'])
     container_configurations = build_config(env_name, service_name, sample_env_file_path, essential_container,
-                                            secrets_name_prefix)
+                                            secrets_name)
     if complete_image_uri is not None:
         task_definition.set_images(essential_container, deploy_version_tag, **{essential_container: complete_image_uri})
     else:
