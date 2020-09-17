@@ -189,6 +189,10 @@ class ServiceConfiguration(object):
                             "pattern": "^\/.*$"
                         }
                     },
+                    "load_balancing_algorithm": {
+                        "type": "string",
+                        "enum": ["round_robin", "least_outstanding_requests"]
+                    },
                     "required": [
                         "internal",
                         "restrict_access_to",
@@ -328,10 +332,6 @@ class ServiceConfiguration(object):
                         "type": "string"
                     }
                 },
-                "load_balancing_algorithm": {
-                    "type": "string",
-                    "enum": ["round_robin", "least_outstanding_requests"]
-                }
             },
             "required": ["memory_reservation", "command", "secrets_name"]
         }
@@ -374,12 +374,12 @@ class ServiceConfiguration(object):
                         },
                         u'restrict_access_to': [u'0.0.0.0/0'],
                         u'container_port': 80,
-                        u'health_check_path': u'/elb-check'
+                        u'health_check_path': u'/elb-check',
+                        u'load_balancing_algorithm': u'least_outstanding_requests'
                     },
                     u'system_controls': [],
                     u'memory_reservation': 1000,
-                    u'command': None,
-                    u'load_balancing_algorithm': u'round_robin'
+                    u'command': None
                 }
             }
         }

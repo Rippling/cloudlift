@@ -569,7 +569,7 @@ service is down',
                 ),
                 TargetGroupAttribute(
                     Key='load_balancing.algorithm.type',
-                    Value=config.get('load_balancing_algorithm', 'round_robin')
+                    Value=config['http_interface'].get('load_balancing_algorithm', 'least_outstanding_requests')
                 )
             ],
             VpcId=Ref(self.vpc),
@@ -606,6 +606,10 @@ service is down',
                 TargetGroupAttribute(
                     Key='deregistration_delay.timeout_seconds',
                     Value='30'
+                ),
+                TargetGroupAttribute(
+                    Key='load_balancing.algorithm.type',
+                    Value=elb_config.get('load_balancing_algorithm', 'least_outstanding_requests')
                 )
             ],
             VpcId=Ref(self.vpc),
