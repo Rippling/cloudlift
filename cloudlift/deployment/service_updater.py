@@ -16,7 +16,7 @@ from stringcase import spinalcase
 from cloudlift.utils import chunks
 
 DEPLOYMENT_COLORS = ['blue', 'magenta', 'white', 'cyan']
-CHUNK_SIZE = 4
+DEPLOYMENT_CONCURRENCY = int(os.environ.get('CLOUDLIFT_DEPLOYMENT_CONCURRENCY', 4))
 
 
 class ServiceUpdater(object):
@@ -71,7 +71,7 @@ class ServiceUpdater(object):
             jobs.append(process)
 
         all_exit_codes = []
-        for chunk_of_jobs in chunks(jobs, CHUNK_SIZE):
+        for chunk_of_jobs in chunks(jobs, DEPLOYMENT_CONCURRENCY):
             exit_codes = []
             for process in chunk_of_jobs:
                 process.start()
