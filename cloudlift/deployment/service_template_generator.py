@@ -566,6 +566,10 @@ service is down',
                 TargetGroupAttribute(
                     Key='deregistration_delay.timeout_seconds',
                     Value='30'
+                ),
+                TargetGroupAttribute(
+                    Key='load_balancing.algorithm.type',
+                    Value=config.get('load_balancing_algorithm', 'round_robin')
                 )
             ],
             VpcId=Ref(self.vpc),

@@ -327,6 +327,10 @@ class ServiceConfiguration(object):
                     "items": {
                         "type": "string"
                     }
+                },
+                "load_balancing_algorithm": {
+                    "type": "string",
+                    "enum": ["round_robin", "least_outstanding_requests"]
                 }
             },
             "required": ["memory_reservation", "command", "secrets_name"]
@@ -374,7 +378,8 @@ class ServiceConfiguration(object):
                     },
                     u'system_controls': [],
                     u'memory_reservation': 1000,
-                    u'command': None
+                    u'command': None,
+                    u'load_balancing_algorithm': u'round_robin'
                 }
             }
         }
