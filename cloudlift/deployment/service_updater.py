@@ -46,6 +46,7 @@ class ServiceUpdater(object):
         ecs_client = EcsClient(None, None, self.region)
 
         jobs = []
+        log_bold("Deployment concurrency: {}".format(DEPLOYMENT_CONCURRENCY))
         for index, ecs_service_logical_name in enumerate(self.service_info):
             ecs_service_info = self.service_info[ecs_service_logical_name]
             log_bold("Queueing deployment of " + ecs_service_info['ecs_service_name'])
