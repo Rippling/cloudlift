@@ -566,11 +566,11 @@ service is down',
             TargetGroupAttributes=[
                 TargetGroupAttribute(
                     Key='deregistration_delay.timeout_seconds',
-                    Value=config['http_interface'].get('deregistration_delay', DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY)
+                    Value=str(config['http_interface'].get('deregistration_delay', DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY))
                 ),
                 TargetGroupAttribute(
                     Key='load_balancing.algorithm.type',
-                    Value=config['http_interface'].get('load_balancing_algorithm', DEFAULT_LOAD_BALANCING_ALGORITHM)
+                    Value=str(config['http_interface'].get('load_balancing_algorithm', DEFAULT_LOAD_BALANCING_ALGORITHM))
                 )
             ],
             VpcId=Ref(self.vpc),
@@ -606,7 +606,7 @@ service is down',
             TargetGroupAttributes=[
                 TargetGroupAttribute(
                     Key='deregistration_delay.timeout_seconds',
-                    Value=elb_config.get('deregistration_delay', DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY)
+                    Value=str(elb_config.get('deregistration_delay', DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY))
                 ),
                 TargetGroupAttribute(
                     Key='load_balancing.algorithm.type',
