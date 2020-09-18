@@ -21,7 +21,8 @@ from cloudlift.config.logging import log_bold, log_err, log_warning
 from cloudlift.version import VERSION
 
 SERVICE_CONFIGURATION_TABLE = 'service_configurations'
-
+DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY = 30
+DEFAULT_LOAD_BALANCING_ALGORITHM = 'least_outstanding_requests'
 
 class ServiceConfiguration(object):
     '''
@@ -378,7 +379,8 @@ class ServiceConfiguration(object):
                         u'restrict_access_to': [u'0.0.0.0/0'],
                         u'container_port': 80,
                         u'health_check_path': u'/elb-check',
-                        u'load_balancing_algorithm': u'least_outstanding_requests'
+                        u'load_balancing_algorithm': DEFAULT_LOAD_BALANCING_ALGORITHM,
+                        u'deregistartion_delay': DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY
                     },
                     u'system_controls': [],
                     u'memory_reservation': 1000,
