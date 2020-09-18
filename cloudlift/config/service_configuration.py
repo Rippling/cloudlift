@@ -193,6 +193,9 @@ class ServiceConfiguration(object):
                         "type": "string",
                         "enum": ["round_robin", "least_outstanding_requests"]
                     },
+                    "deregistration_delay": {
+                      "type": "number"
+                    },
                     "required": [
                         "internal",
                         "restrict_access_to",

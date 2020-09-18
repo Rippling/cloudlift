@@ -44,6 +44,8 @@ class ServiceTemplateGenerator(TemplateGenerator):
         )]
     LAUNCH_TYPE_FARGATE = 'FARGATE'
     LAUNCH_TYPE_EC2 = 'EC2'
+    DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY = 30
+    DEFAULT_LOAD_BALANCING_ALGORITHM = 'least_outstanding_requests'
 
     def __init__(self, service_configuration, environment_stack, env_sample_file):
         super(ServiceTemplateGenerator, self).__init__(service_configuration.environment)
@@ -565,11 +567,11 @@ service is down',
             TargetGroupAttributes=[
                 TargetGroupAttribute(
                     Key='deregistration_delay.timeout_seconds',
-                    Value='30'
+                    Value=config['http_interface'].get('deregistration_delay', self.DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY)
                 ),
                 TargetGroupAttribute(
                     Key='load_balancing.algorithm.type',
-                    Value=config['http_interface'].get('load_balancing_algorithm', 'least_outstanding_requests')
+                    Value=config['http_interface'].get('load_balancing_algorithm', self.DEFAULT_LOAD_BALANCING_ALGORITHM)
                 )
             ],
             VpcId=Ref(self.vpc),
@@ -605,11 +607,11 @@ service is down',
             TargetGroupAttributes=[
                 TargetGroupAttribute(
                     Key='deregistration_delay.timeout_seconds',
-                    Value='30'
+                    Value=elb_config.get('deregistration_delay', self.DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY)
                 ),
                 TargetGroupAttribute(
                     Key='load_balancing.algorithm.type',
-                    Value=elb_config.get('load_balancing_algorithm', 'least_outstanding_requests')
+                    Value=elb_config.get('load_balancing_algorithm', self.DEFAULT_LOAD_BALANCING_ALGORITHM)
                 )
             ],
             VpcId=Ref(self.vpc),
