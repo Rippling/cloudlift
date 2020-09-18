@@ -22,7 +22,7 @@ from cloudlift.version import VERSION
 
 SERVICE_CONFIGURATION_TABLE = 'service_configurations'
 DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY = 30
-DEFAULT_LOAD_BALANCING_ALGORITHM = 'least_outstanding_requests'
+DEFAULT_LOAD_BALANCING_ALGORITHM = u'least_outstanding_requests'
 
 class ServiceConfiguration(object):
     '''
