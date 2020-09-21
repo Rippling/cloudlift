@@ -213,6 +213,10 @@ service is down',
                 ecs_health_check['Interval'] = int(configured_health_check['interval'])
             if 'timeout' in configured_health_check:
                 ecs_health_check['Timeout'] = int(configured_health_check['timeout'])
+            if 'healthy_threshold_count' in configured_health_check:
+                ecs_health_check['HealthyThresholdCount'] = int(configured_health_check['healthy_threshold_count'])
+            if 'unhealthy_threshold_count' in configured_health_check:
+                ecs_health_check['UnhealthyThresholdCount'] = int(configured_health_check['unhealthy_threshold_count'])
             container_definition_arguments['HealthCheck'] = HealthCheck(
                 **ecs_health_check
             )

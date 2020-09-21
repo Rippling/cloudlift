@@ -267,6 +267,16 @@ class ServiceConfiguration(object):
                             "minimum": 2,
                             "maximum": 60
                         },
+                        "healthy_threshold_count": {
+                            "type": "number",
+                            "minimum": 2,
+                            "maxium": 10
+                        },
+                        "unhealthy_threshold_count": {
+                            "type": "number",
+                            "minimum": 2,
+                            "maxium": 10
+                        },
                     },
                     "required": ["command"]
                 },
