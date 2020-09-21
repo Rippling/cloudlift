@@ -213,10 +213,6 @@ service is down',
                 ecs_health_check['Interval'] = int(configured_health_check['interval'])
             if 'timeout' in configured_health_check:
                 ecs_health_check['Timeout'] = int(configured_health_check['timeout'])
-            if 'healthy_threshold_count' in configured_health_check:
-                ecs_health_check['HealthyThresholdCount'] = int(configured_health_check['healthy_threshold_count'])
-            if 'unhealthy_threshold_count' in configured_health_check:
-                ecs_health_check['UnhealthyThresholdCount'] = int(configured_health_check['unhealthy_threshold_count'])
             container_definition_arguments['HealthCheck'] = HealthCheck(
                 **ecs_health_check
             )
@@ -565,8 +561,8 @@ service is down',
         service_target_group = TargetGroup(
             target_group_name,
             HealthCheckPath=health_check_path,
-            HealthyThresholdCount=2,
-            HealthCheckIntervalSeconds=30,
+            HealthyThresholdCount=int(config['http_interface'].get('health_check_healthy_threshold_count', 2)),
+            HealthCheckIntervalSeconds=int(config['http_interface'].get('health_check_interval_seconds', 30)),
             TargetGroupAttributes=[
                 TargetGroupAttribute(
                     Key='deregistration_delay.timeout_seconds',
@@ -581,8 +577,8 @@ service is down',
             Protocol="HTTP",
             Matcher=Matcher(HttpCode="200-399"),
             Port=int(config['http_interface']['container_port']),
-            HealthCheckTimeoutSeconds=10,
-            UnhealthyThresholdCount=3,
+            HealthCheckTimeoutSeconds=int(config['http_interface'].get('health_check_timeout_seconds', 10)),
+            UnhealthyThresholdCount=int(config['http_interface'].get('health_check_unhealthy_threshold_count', 3)),
             **target_group_config
         )
 

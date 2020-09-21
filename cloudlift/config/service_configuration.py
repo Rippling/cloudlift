@@ -188,7 +188,32 @@ class ServiceConfiguration(object):
                         "health_check_path": {
                             "type": "string",
                             "pattern": "^\/.*$"
-                        }
+                        },
+                        "healthy_threshold_count": {
+                            "type": "number",
+                            "minimum": 2,
+                            "maximum": 10
+                        },
+                        "health_check_healthy_threshold_count": {
+                            "type": "number",
+                            "minimum": 2,
+                            "maximum": 10
+                        },
+                        "health_check_unhealthy_threshold_count": {
+                            "type": "number",
+                            "minimum": 2,
+                            "maxium": 10
+                        },
+                        "health_check_interval_seconds": {
+                            "type": "number",
+                            "minimum": 5,
+                            "maximum": 300
+                        },
+                        "health_check_timeout_seconds": {
+                            "type": "number",
+                            "minimum": 2,
+                            "maximum": 120
+                        },
                     },
                     "load_balancing_algorithm": {
                         "type": "string",
@@ -266,16 +291,6 @@ class ServiceConfiguration(object):
                             "type": "number",
                             "minimum": 2,
                             "maximum": 60
-                        },
-                        "healthy_threshold_count": {
-                            "type": "number",
-                            "minimum": 2,
-                            "maxium": 10
-                        },
-                        "unhealthy_threshold_count": {
-                            "type": "number",
-                            "minimum": 2,
-                            "maxium": 10
                         },
                     },
                     "required": ["command"]
