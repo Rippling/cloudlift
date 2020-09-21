@@ -194,11 +194,6 @@ class ServiceConfiguration(object):
                             "type": "string",
                             "pattern": "^\/.*$"
                         },
-                        "healthy_threshold_count": {
-                            "type": "number",
-                            "minimum": 2,
-                            "maximum": 10
-                        },
                         "health_check_healthy_threshold_count": {
                             "type": "number",
                             "minimum": 2,
