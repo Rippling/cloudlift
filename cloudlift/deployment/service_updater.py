@@ -32,7 +32,6 @@ class ServiceUpdater(object):
         self.build_args = build_args
         self.dockerfile = dockerfile
         self.working_dir = working_dir
-        self.service_info = ServiceInformationFetcher(self.name, self.environment).service_info
 
     def run(self):
         log_warning("Deploying to {self.region}".format(**locals()))
@@ -47,8 +46,9 @@ class ServiceUpdater(object):
 
         jobs = []
         log_bold("Deployment concurrency: {}".format(DEPLOYMENT_CONCURRENCY))
-        for index, ecs_service_logical_name in enumerate(self.service_info):
-            ecs_service_info = self.service_info[ecs_service_logical_name]
+        service_info = ServiceInformationFetcher(self.name, self.environment).service_info
+        for index, ecs_service_logical_name in enumerate(service_info):
+            ecs_service_info = service_info[ecs_service_logical_name]
             log_bold("Queueing deployment of " + ecs_service_info['ecs_service_name'])
             color = DEPLOYMENT_COLORS[index % 3]
             image_url = self.ecr_image_uri
@@ -233,7 +233,6 @@ version to be " + self.version + " based on current status")
                 self._build_image(image_name)
                 self._push_image(image_name, ecr_name)
                 image = self._find_image_in_ecr(self.version)
-
         try:
             image_manifest = image['imageManifest']
             self.ecr_client.put_image(
