@@ -19,7 +19,7 @@ def setup_module(module):
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-environment_name = 'test'
+environment_name = 'ci'
 service_name = 'cfn-dummy'
 
 
@@ -79,6 +79,32 @@ def mocked_service_with_secrets_manager_config(cls, *args, **kwargs):
 
 
 def test_cloudlift_can_deploy_to_ec2(keep_resources):
+    cfn_client = boto3.client('cloudformation')
+    stack_name = f'{service_name}-{environment_name}'
+    cfn_client.delete_stack(StackName=stack_name)
+    print("initiated delete")
+    waiter = cfn_client.get_waiter('stack_delete_complete')
+    waiter.wait(StackName=stack_name)
+    print("completed delete")
+    os.chdir(f'{TEST_DIR}/dummy')
+    print("adding configuration to parameter store")
+    _set_param_store_env(environment_name, service_name, {'PORT': '80', 'LABEL': 'Demo', 'REDIS_HOST': 'redis'})
+    print("adding configuration to secrets manager")
+    _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager'})
+
+    ServiceCreator(service_name, environment_name, "env.sample").create(mocked_service_with_secrets_manager_config(None))
+
+    ServiceUpdater(service_name, environment_name, "env.sample", timeout_seconds=600).run()
+    outputs = cfn_client.describe_stacks(StackName=stack_name)['Stacks'][0]['Outputs']
+    service_url = [x for x in outputs if x["OutputKey"] == "DummyURL"][0]['OutputValue']
+    expected = 'This is dummy app. Label: Value from secret manager. Redis PING: PONG. AWS EC2 READ ACCESS: True'
+    content_matched = wait_until(lambda: match_page_content(service_url, expected), 60)
+    assert content_matched
+    if not keep_resources:
+        cfn_client.delete_stack(StackName=stack_name)
+
+
+def test_cloudlift_can_deploy_to_ec2_with_editable_config(keep_resources):
     cfn_client = boto3.client('cloudformation')
     stack_name = f'{service_name}-{environment_name}'
     cfn_client.delete_stack(StackName=stack_name)

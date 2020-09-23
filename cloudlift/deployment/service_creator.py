@@ -31,19 +31,19 @@ class ServiceCreator(object):
         self.client = get_client_for('cloudformation', self.environment)
         self.environment_stack = self._get_environment_stack()
         self.existing_events = get_stack_events(self.client, self.stack_name)
-        self.service_configuration = ServiceConfiguration(
-            self.name,
-            self.environment
-        )
+        self.service_configuration = ServiceConfiguration(self.name, self.environment)
         self.env_sample_file = env_sample_file
 
-    def create(self):
+    def create(self, config_body=None):
         '''
             Create and execute CloudFormation template for ECS service
             and related dependencies
         '''
         log_bold("Initiating service creation")
-        self.service_configuration.edit_config()
+        if config_body is None:
+            self.service_configuration.edit_config()
+        else:
+            self.service_configuration.set_config(config_body)
 
         template_generator = ServiceTemplateGenerator(
             self.service_configuration,
