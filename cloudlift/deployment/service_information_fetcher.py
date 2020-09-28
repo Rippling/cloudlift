@@ -2,7 +2,7 @@ from subprocess import call
 
 from cloudlift.config import get_client_for
 from cloudlift.config import get_cluster_name, get_service_stack_name
-from cloudlift.config.logging import log, log_bold, log_err, log_intent, log_warning
+from cloudlift.config.logging import log, log_bold, log_err, log_warning
 from cloudlift.exceptions import UnrecoverableException
 from cloudlift.deployment.ecs import DeployAction, EcsClient
 from cloudlift.config import get_region_for_environment
@@ -27,7 +27,12 @@ class ServiceInformationFetcher(object):
                 )
             )
             stack_outputs = {output['OutputKey']: output['OutputValue'] for output in stack['Outputs']}
+
+            self.ecr_repo_name = stack_outputs['ECRRepoName']
+            self.ecr_assume_role_arn = stack_outputs.get('ECRAssumeRoleARN', None)
+            self.ecr_account_id = stack_outputs.get('ECRAccountID', None)
             self.service_info = {}
+
             for service_output in ecs_service_outputs:
                 ecs_service_logical_name = service_output['OutputKey'].replace("EcsServiceName", "")
                 self.service_info[ecs_service_logical_name] = {
@@ -42,10 +47,11 @@ class ServiceInformationFetcher(object):
                     "key": service_output['OutputKey'].replace("EcsServiceName", ""),
                     "value": service_output['OutputValue']
                 })
-        except Exception:
+        except Exception as e:
             self.ecs_service_names = []
             self.ecs_service_logical_name_mappings = []
             log_warning("Could not determine services.")
+            log_warning(e)
 
     def get_current_version(self):
         commit_sha = self._fetch_current_task_definition_tag()

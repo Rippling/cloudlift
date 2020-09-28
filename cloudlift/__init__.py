@@ -69,9 +69,18 @@ AWS_DEFAULT_REGION env vars are set OR run 'aws configure'")
 ECS services")
 @_require_environment
 @_require_name
+@click.option('--version', default=None,
+              help='local image version tag')
+@click.option("--build-arg", type=(str, str), multiple=True, help="These args are passed to docker build command "
+                                                                  "as --build-args. Supports multiple.\
+                                                                   Please leave space between name and value")
+@click.option('--dockerfile', default=None, help='The Dockerfile path used to build')
+
 @click.option('--env_sample_file', default='env.sample', help='env sample file path')
-def create_service(name, environment, env_sample_file):
-    ServiceCreator(name, environment, env_sample_file).create()
+def create_service(name, environment, version, build_arg, dockerfile, env_sample_file):
+    ServiceCreator(name, environment, env_sample_file).create(
+        version=version, build_arg=build_arg, dockerfile=dockerfile,
+    )
 
 
 @cli.command(help="Update existing service.")
@@ -129,7 +138,7 @@ def deploy_service(name, environment, timeout_seconds, version, build_arg, docke
               help='Additional tags for the image apart from commit SHA')
 @_require_name
 def upload_to_ecr(name, local_tag, additional_tags):
-    ServiceUpdater(name, version=local_tag).upload_image(additional_tags)
+    ServiceUpdater(name, version=local_tag).ecr.upload_image(additional_tags)
 
 
 @cli.command(help="Get commit information of currently deployed code \

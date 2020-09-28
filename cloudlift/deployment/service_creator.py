@@ -10,12 +10,14 @@ from cloudlift.exceptions import UnrecoverableException
 
 from cloudlift.config import get_client_for
 from cloudlift.config import ServiceConfiguration
-from cloudlift.config import get_cluster_name, get_service_stack_name
+from cloudlift.config import get_cluster_name, get_service_stack_name, get_region_for_environment
 from cloudlift.deployment.changesets import create_change_set
 from cloudlift.config.logging import log, log_bold, log_err
 from cloudlift.deployment.progress import get_stack_events, print_new_events
 from cloudlift.deployment.service_template_generator import ServiceTemplateGenerator
 from cloudlift.deployment.cloud_formation_stack import prepare_stack_options_for_template
+from cloudlift.deployment.ecr import ECR
+from cloudlift.deployment.service_information_fetcher import ServiceInformationFetcher
 
 
 class ServiceCreator(object):
@@ -34,7 +36,7 @@ class ServiceCreator(object):
         self.service_configuration = ServiceConfiguration(self.name, self.environment)
         self.env_sample_file = env_sample_file
 
-    def create(self, config_body=None):
+    def create(self, config_body=None, version=None, build_arg=None, dockerfile=None):
         '''
             Create and execute CloudFormation template for ECS service
             and related dependencies
@@ -45,10 +47,23 @@ class ServiceCreator(object):
         else:
             self.service_configuration.set_config(config_body)
 
+        ecr_repo_config = self.service_configuration.get_config().get('ecr_repo')
+        ecr = ECR(
+            region=get_region_for_environment(self.environment),
+            repo_name=ecr_repo_config.get('name'),
+            account_id=ecr_repo_config.get('account_id', None),
+            assume_role_arn=ecr_repo_config.get('assume_role_arn', None),
+            version=version,
+            build_args=build_arg,
+            dockerfile=dockerfile,
+        )
+        ecr.upload_artefacts()
+
         template_generator = ServiceTemplateGenerator(
             self.service_configuration,
             self.environment_stack,
             self.env_sample_file,
+            ecr.image_uri
         )
         service_template_body = template_generator.generate_service()
 
@@ -82,11 +97,26 @@ class ServiceCreator(object):
 
         log_bold("Starting to update service")
         self.service_configuration.edit_config()
+
         try:
+            information_fetcher = ServiceInformationFetcher(self.service_configuration.service_name, self.environment)
+            current_version = information_fetcher.get_current_version()
+            desired_counts = information_fetcher.fetch_current_desired_count()
+            ecr_repo_config = self.service_configuration.get_config().get('ecr_repo')
+            ecr = ECR(
+                region=get_region_for_environment(self.environment),
+                repo_name=ecr_repo_config.get('name'),
+                account_id=ecr_repo_config.get('account_id', None),
+                assume_role_arn=ecr_repo_config.get('assume_role_arn', None),
+                version=current_version,
+            )
+
             template_generator = ServiceTemplateGenerator(
                 self.service_configuration,
                 self.environment_stack,
                 self.env_sample_file,
+                ecr.image_uri,
+                desired_counts,
             )
             service_template_body = template_generator.generate_service()
             change_set = create_change_set(
@@ -116,7 +146,7 @@ class ServiceCreator(object):
             environment_stack = self.client.describe_stacks(
                 StackName=get_cluster_name(self.environment)
             )['Stacks'][0]
-            log_bold(self.environment+" stack found. Using stack with ID: " +
+            log_bold(self.environment + " stack found. Using stack with ID: " +
                      environment_stack['StackId'])
         except ClientError:
             raise UnrecoverableException(self.environment + " cluster not found. Create the environment \

@@ -220,7 +220,7 @@ class ServiceConfiguration(object):
                         "enum": ["round_robin", "least_outstanding_requests"]
                     },
                     "deregistration_delay": {
-                      "type": "number"
+                        "type": "number"
                     },
                     "required": [
                         "internal",
@@ -378,6 +378,15 @@ class ServiceConfiguration(object):
                         "^[a-zA-Z]+$": service_schema
                     }
                 },
+                "ecr_repo": {
+                    "type": "object",
+                    "properties": {
+                        "account_id": {"type": "string"},
+                        "assume_role_arn": {"type": "string"},
+                        "name": {"type": "string"},
+                    },
+                    "required": ["name"]
+                },
                 "cloudlift_version": {
                     "type": "string"
                 }
@@ -394,6 +403,9 @@ class ServiceConfiguration(object):
 
     def _default_service_configuration(self):
         return {
+            u'ecr_repo': {
+                u'name': self.service_name,
+            },
             u'services': {
                 pascalcase(self.service_name): {
                     u'http_interface': {
