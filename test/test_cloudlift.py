@@ -26,9 +26,11 @@ service_name = 'cfn-dummy'
 def mocked_service_config(cls, *args, **kwargs):
     return {
         "cloudlift_version": VERSION,
+        'ecr_repo': {'name': 'dummy-repo'},
         "services": {
             "Dummy": {
                 "command": None,
+                "secrets_name": "{}-{}".format(service_name, environment_name),
                 "sidecars": [
                     {"name": "redis", "image": "redis", "memory_reservation": 256}
                 ],
@@ -53,6 +55,7 @@ def mocked_service_config(cls, *args, **kwargs):
 def mocked_service_with_secrets_manager_config(cls, *args, **kwargs):
     return {
         "cloudlift_version": VERSION,
+        'ecr_repo': {'name': 'dummy-repo'},
         "services": {
             "Dummy": {
                 "command": None,
@@ -92,7 +95,9 @@ def test_cloudlift_can_deploy_to_ec2(keep_resources):
     print("adding configuration to secrets manager")
     _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager'})
 
-    ServiceCreator(service_name, environment_name, "env.sample").create(mocked_service_with_secrets_manager_config(None))
+    ServiceCreator(service_name, environment_name, "env.sample").create(
+        mocked_service_with_secrets_manager_config(None)
+    )
 
     ServiceUpdater(service_name, environment_name, "env.sample", timeout_seconds=600).run()
     outputs = cfn_client.describe_stacks(StackName=stack_name)['Stacks'][0]['Outputs']
@@ -115,6 +120,8 @@ def test_cloudlift_can_deploy_to_ec2_with_editable_config(keep_resources):
     os.chdir(f'{TEST_DIR}/dummy')
     print("adding configuration to parameter store")
     _set_param_store_env(environment_name, service_name, {'PORT': '80', 'LABEL': 'Demo', 'REDIS_HOST': 'redis'})
+    print("adding configuration to secrets manager")
+    _set_secrets_manager_config(f"{service_name}-{environment_name}", {})
     with patch.object(ServiceConfiguration, 'edit_config',
                       new=mocked_service_config):
         with patch.object(ServiceConfiguration, 'get_config',

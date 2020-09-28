@@ -6,6 +6,7 @@ from stringcase import spinalcase
 
 from cloudlift.config.logging import log_bold, log_err, log_intent, log_warning
 from cloudlift.exceptions import UnrecoverableException
+from cloudlift.config.account import get_account_id
 
 
 class ECR:
@@ -13,7 +14,7 @@ class ECR:
                  build_args=None, dockerfile=None, working_dir='.'):
         self.repo_name = repo_name
         self.region = region
-        self.account_id = account_id
+        self.account_id = account_id or get_account_id()
         self.client = _create_ecr_client(region, assume_role_arn)
         self.version = version
         self.build_args = build_args
@@ -44,7 +45,9 @@ class ECR:
             raise UnrecoverableException("Commit SHA not found. Given version is not a git tag, \
 branch or commit SHA")
 
-    def _push_image(self, local_name, ecr_name):
+    def _push_image(self):
+        local_name = self.local_image_uri
+        ecr_name = self.image_uri
         try:
             subprocess.check_call(["docker", "tag", local_name, ecr_name])
         except:
@@ -109,10 +112,8 @@ version to be " + self.version + " based on current status")
                 log_intent("Image found in ECR")
             else:
                 log_bold("Image not found in ECR. Building image")
-                image_name = spinalcase(self.repo_name) + ':' + self.version
-                ecr_name = self.image_uri + ':' + self.version
-                self._build_image(image_name)
-                self._push_image(image_name, ecr_name)
+                self._build_image()
+                self._push_image()
                 image = self._find_image_in_ecr(self.version)
         try:
             image_manifest = image['imageManifest']
@@ -124,7 +125,8 @@ version to be " + self.version + " based on current status")
         except Exception:
             pass
 
-    def _build_image(self, image_name):
+    def _build_image(self):
+        image_name = self.local_image_uri
         log_bold(
             f'Building docker image {image_name} using {"default Dockerfile" if self.dockerfile is None else self.dockerfile}')
         command = self._build_command(image_name)
@@ -148,9 +150,8 @@ version to be " + self.version + " based on current status")
 
     def upload_image(self, additional_tags):
         image_name = spinalcase(self.repo_name) + ':' + self.version
-        ecr_image_name = self.image_uri + ':' + self.version
         self.ensure_repository()
-        self._push_image(image_name, ecr_image_name)
+        self._push_image()
 
         for new_tag in additional_tags:
             self._add_image_tag(self.version, new_tag)
@@ -176,8 +177,22 @@ version to be " + self.version + " based on current status")
 
     @property
     def image_uri(self):
-        return str(self.account_id) + ".dkr.ecr." + self.region + \
-               ".amazonaws.com/" + self.repo_name
+        return "{}:{}".format(
+            self.repo_path,
+            self.version
+        )
+
+    @property
+    def repo_path(self):
+        return "{}.dkr.ecr.{}.amazonaws.com/{}".format(
+            str(self.account_id),
+            self.region,
+            self.repo_name,
+        )
+
+    @property
+    def local_image_uri(self):
+        return spinalcase(self.repo_name) + ':' + self.version
 
 
 def _create_ecr_client(region, assume_role_arn=None):

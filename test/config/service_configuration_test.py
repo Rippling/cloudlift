@@ -159,6 +159,7 @@ class TestServiceConfigurationValidation(TestCase):
         try:
             service._validate_changes({
                 'cloudlift_version': 'test',
+                'ecr_repo': {'name': 'test-service-repo'},
                 'services': {
                     'TestService': {
                         'memory_reservation': 1000,
@@ -179,9 +180,11 @@ class TestServiceConfigurationValidation(TestCase):
         try:
             service._validate_changes({
                 'cloudlift_version': 'test',
+                'ecr_repo': {'name': 'test-service-repo'},
                 'services': {
                     'TestService': {
                         'memory_reservation': 1000,
+                        'secrets_name': 'secret-config',
                         'command': None,
                         'placement_constraints': [{
                             'type': 'invalid'
@@ -202,6 +205,7 @@ class TestServiceConfigurationValidation(TestCase):
         try:
             service._validate_changes({
                 'cloudlift_version': 'test',
+                'ecr_repo': {'name': 'test-service-repo'},
                 'services': {
                     'TestService': {
                         'memory_reservation': 1000,
@@ -222,6 +226,7 @@ class TestServiceConfigurationValidation(TestCase):
         try:
             service._validate_changes({
                 'cloudlift_version': 'test',
+                'ecr_repo': {'name': 'test-service-repo'},
                 'services': {
                     'TestService': {
                         'memory_reservation': 1000,
@@ -244,6 +249,7 @@ class TestServiceConfigurationValidation(TestCase):
         try:
             service._validate_changes({
                 'cloudlift_version': 'test',
+                'ecr_repo': {'name': 'test-service-repo'},
                 'services': {
                     'TestService': {
                         'memory_reservation': 1000,
@@ -269,6 +275,7 @@ class TestServiceConfigurationValidation(TestCase):
         try:
             service._validate_changes({
                 'cloudlift_version': 'test',
+                'ecr_repo': {'name': 'test-service-repo'},
                 'services': {
                     'TestService': {
                         'memory_reservation': 1000,
@@ -295,6 +302,7 @@ class TestServiceConfigurationValidation(TestCase):
         try:
             service._validate_changes({
                 'cloudlift_version': 'test',
+                'ecr_repo': {'name': 'test-service-repo'},
                 'services': {
                     'TestService': {
                         'memory_reservation': 1000,
@@ -324,6 +332,7 @@ class TestServiceConfigurationValidation(TestCase):
         try:
             service._validate_changes({
                 'cloudlift_version': 'test',
+                'ecr_repo': {'name': 'test-service-repo'},
                 'services': {
                     'TestService': {
                         'memory_reservation': 1000,

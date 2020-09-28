@@ -6,6 +6,7 @@ from cloudlift.config.logging import log, log_bold, log_err, log_warning
 from cloudlift.exceptions import UnrecoverableException
 from cloudlift.deployment.ecs import DeployAction, EcsClient
 from cloudlift.config import get_region_for_environment
+from stringcase import spinalcase
 
 
 class ServiceInformationFetcher(object):
@@ -28,7 +29,8 @@ class ServiceInformationFetcher(object):
             )
             stack_outputs = {output['OutputKey']: output['OutputValue'] for output in stack['Outputs']}
 
-            self.ecr_repo_name = stack_outputs['ECRRepoName']
+            # For backwards compatibility during deployment, using default as {service-name}-repo
+            self.ecr_repo_name = stack_outputs.get('ECRRepoName', spinalcase(self.name + '-repo'))
             self.ecr_assume_role_arn = stack_outputs.get('ECRAssumeRoleARN', None)
             self.ecr_account_id = stack_outputs.get('ECRAccountID', None)
             self.service_info = {}

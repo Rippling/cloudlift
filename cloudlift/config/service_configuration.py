@@ -81,6 +81,8 @@ class ServiceConfiguration(object):
                 ))
                 if not differences:
                     log_warning("No changes made.")
+                    # Validate if old configuration is correct.
+                    self._validate_changes(updated_configuration)
                 else:
                     print_json_changes(differences)
                     if confirm('Do you want update the config?'):
@@ -90,7 +92,7 @@ class ServiceConfiguration(object):
         except ClientError:
             raise UnrecoverableException("Unable to fetch service configuration from DynamoDB.")
 
-    def get_config(self):
+    def get_config(self, strip_cloudlift_version=True):
         '''
             Get configuration from DynamoDB
         '''
@@ -112,7 +114,8 @@ class ServiceConfiguration(object):
                 existing_configuration = self._default_service_configuration()
                 self.new_service = True
 
-            existing_configuration.pop("cloudlift_version", None)
+            if strip_cloudlift_version:
+                existing_configuration.pop("cloudlift_version", None)
             return existing_configuration
         except ClientError:
             raise UnrecoverableException("Unable to fetch service configuration from DynamoDB.")
@@ -146,6 +149,9 @@ class ServiceConfiguration(object):
         '''
         config = self.get_config()
         self.set_config(config)
+
+    def validate(self):
+        self._validate_changes(self.get_config(strip_cloudlift_version=False))
 
     def _validate_changes(self, configuration):
         service_schema = {
@@ -391,7 +397,7 @@ class ServiceConfiguration(object):
                     "type": "string"
                 }
             },
-            "required": ["cloudlift_version", "services"]
+            "required": ["cloudlift_version", "services", "ecr_repo"]
         }
         try:
             validate(configuration, schema)

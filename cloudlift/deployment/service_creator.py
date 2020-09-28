@@ -47,6 +47,7 @@ class ServiceCreator(object):
         else:
             self.service_configuration.set_config(config_body)
 
+        self.service_configuration.validate()
         ecr_repo_config = self.service_configuration.get_config().get('ecr_repo')
         ecr = ECR(
             region=get_region_for_environment(self.environment),
@@ -97,6 +98,7 @@ class ServiceCreator(object):
 
         log_bold("Starting to update service")
         self.service_configuration.edit_config()
+        self.service_configuration.validate()
 
         try:
             information_fetcher = ServiceInformationFetcher(self.service_configuration.service_name, self.environment)

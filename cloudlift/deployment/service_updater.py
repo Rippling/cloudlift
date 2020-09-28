@@ -59,7 +59,6 @@ class ServiceUpdater(object):
             log_bold("Queueing deployment of " + ecs_service_info['ecs_service_name'])
             color = DEPLOYMENT_COLORS[index % 3]
             image_url = self.ecr.image_uri
-            image_url += (':' + self.version)
             process = multiprocessing.Process(
                 target=deployer.deploy_new_version,
                 args=(

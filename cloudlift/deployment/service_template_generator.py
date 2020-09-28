@@ -46,13 +46,13 @@ class ServiceTemplateGenerator(TemplateGenerator):
     LAUNCH_TYPE_FARGATE = 'FARGATE'
     LAUNCH_TYPE_EC2 = 'EC2'
 
-    def __init__(self, service_configuration, environment_stack, env_sample_file, ecr_image_uri, desired_counts={}):
+    def __init__(self, service_configuration, environment_stack, env_sample_file, ecr_image_uri, desired_counts=None):
         super(ServiceTemplateGenerator, self).__init__(service_configuration.environment)
         self._derive_configuration(service_configuration)
         self.env_sample_file_path = env_sample_file
         self.environment_stack = environment_stack
         self.ecr_image_uri = ecr_image_uri
-        self.desired_counts = desired_counts
+        self.desired_counts = desired_counts or {}
 
     def _derive_configuration(self, service_configuration):
         self.application_name = service_configuration.service_name
@@ -63,6 +63,7 @@ class ServiceTemplateGenerator(TemplateGenerator):
         self._add_service_outputs()
         self._add_ecs_service_iam_role()
         self._add_cluster_services()
+        self._add_ecr_outputs()
         return to_yaml(self.template.to_json())
 
     def _add_cluster_services(self):
@@ -995,6 +996,33 @@ building this service",
             )
         ))
         self._add_stack_outputs()
+
+    def _add_ecr_outputs(self):
+        ecr_repo_config = self.configuration.get('ecr_repo')
+        self.template.add_output(
+            Output(
+                "ECRRepoName",
+                Description="ECR repo to for docker images",
+                Value=ecr_repo_config.get('name')
+            )
+        )
+
+        if 'account_id' in ecr_repo_config:
+            self.template.add_output(
+                Output(
+                    "ECRAccountID",
+                    Description="Account ID to which the ECR repo belongs to",
+                    Value=ecr_repo_config.get('account_id')
+                )
+            )
+        if 'assume_role_arn' in ecr_repo_config:
+            self.template.add_output(
+                Output(
+                    "ECRAssumeRoleARN",
+                    Description="Role to assume to interact with ECR",
+                    Value=ecr_repo_config.get('account_id')
+                )
+            )
 
     def _add_service_parameters(self):
         self.notification_sns_arn = Parameter(
