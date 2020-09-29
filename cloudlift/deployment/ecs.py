@@ -399,7 +399,7 @@ class EcsAction(object):
     def get_previous_task_definition(self, service):
         task_definition_arn = self.get_current_task_definition(service).tags.get('previous_task_definition_arn')
         if task_definition_arn is None:
-            raise UnrecoverableException('previous_task_definition_arn doesn\'t exist for current task definition')
+            raise UnrecoverableException('previous_task_definition_arn tag does not exist for current task definition')
         return self.getEcsTaskDefinitionByArn(task_definition_arn)
 
     def getEcsTaskDefinitionByArn(self, task_definition_arn):

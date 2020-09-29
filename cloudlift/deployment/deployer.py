@@ -15,18 +15,13 @@ def find_essential_container(container_definitions):
     for defn in container_definitions:
         if defn[u'essential']:
             return defn[u'name']
-
     raise UnrecoverableException('no essential containers found')
 
 
-def revert_last_deployment(client, cluster_name, ecs_service_name, color, timeout_seconds, secrets_name):
-    previous_task_definition = get_previous_task_definition(client, cluster_name, ecs_service_name)
-    deploy_task_definition(client, previous_task_definition, cluster_name, ecs_service_name, color, timeout_seconds, action_name='Revert')
-
-
-def get_previous_task_definition(client, cluster_name, ecs_service_name):
+def revert_last_deployment(client, cluster_name, ecs_service_name, color, timeout_seconds):
     deployment = DeployAction(client, cluster_name, ecs_service_name)
-    return deployment.get_previous_task_definition(deployment.service)
+    previous_task_defn = deployment.get_previous_task_definition(deployment.service)
+    deploy_task_definition(client, previous_task_defn, cluster_name, ecs_service_name, color, timeout_seconds, 'Revert')
 
 
 def deploy_new_version(client, cluster_name, ecs_service_name,
@@ -35,11 +30,10 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
     task_definition = create_new_task_definition(color, complete_image_uri, deploy_version_tag, ecs_service_name,
                                                  env_name, sample_env_file_path, secrets_name, service_name, client,
                                                  cluster_name)
-    deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_seconds,
-                           action_name='Deploy')
+    deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_seconds, 'Deploy')
 
 
-def deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_seconds, action_name='Deploy'):
+def deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_secs, action_name):
     deployment = DeployAction(client, cluster_name, ecs_service_name)
     log_bold(f"Starting {action_name} for" + ecs_service_name)
     if deployment.service.desired_count == 0:
@@ -47,11 +41,11 @@ def deploy_task_definition(client, task_definition, cluster_name, ecs_service_na
     else:
         desired_count = deployment.service.desired_count
     deployment.service.set_desired_count(desired_count)
-    deployment_succeeded = deploy_and_wait(deployment, task_definition, color, timeout_seconds)
+    deployment_succeeded = deploy_and_wait(deployment, task_definition, color, timeout_secs)
     if not deployment_succeeded:
         record_deployment_failure_metric(deployment.cluster_name, deployment.service_name)
         raise UnrecoverableException(ecs_service_name + f" {action_name} failed.")
-    log_bold(ecs_service_name + f" {action_name} successfully.")
+    log_bold(ecs_service_name + f" {action_name}: Completed successfully.")
 
 
 def create_new_task_definition(color, complete_image_uri, deploy_version_tag, ecs_service_name, env_name,
@@ -122,15 +116,9 @@ def read_config(file_content):
 def wait_for_finish(action, existing_events, color, deploy_end_time):
     while time() <= deploy_end_time:
         service = action.get_service()
-        existing_events = fetch_and_print_new_events(
-            service,
-            existing_events,
-            color
-        )
-
+        existing_events = fetch_and_print_new_events(service, existing_events, color)
         if is_deployed(service):
             return True
-
         sleep(5)
 
     log_err("Deployment timed out!")
@@ -168,18 +156,14 @@ def is_deployed(service):
 
 
 def fetch_events(service):
-    all_events = sorted(service.get(u'events'), key=lambda k: k['createdAt'])
-    return all_events
+    return sorted(service.get(u'events'), key=lambda k: k['createdAt'])
 
 
 def fetch_and_print_new_events(service, existing_events, color):
     all_events = fetch_events(service)
     new_events = [evnt for evnt in all_events if evnt not in existing_events]
     for event in new_events:
-        log_with_color(
-            event['message'].replace("(", "").replace(")", "")[8:],
-            color
-        )
+        log_with_color(event['message'].replace("(", "").replace(")", "")[8:], color)
     return all_events
 
 
