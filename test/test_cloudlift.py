@@ -150,19 +150,28 @@ def test_cloudlift_service_with_secrets_manager_config(keep_resources):
     print("adding configuration to parameter store")
     _set_param_store_env(environment_name, service_name, {'PORT': '80', 'LABEL': 'Demo', 'REDIS_HOST': 'redis'})
     print("adding configuration to secrets manager")
-    _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager'})
+    _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager v1'})
     with patch.object(ServiceConfiguration, 'edit_config',
                       new=mocked_service_with_secrets_manager_config):
         with patch.object(ServiceConfiguration, 'get_config',
                           new=mocked_service_with_secrets_manager_config):
             ServiceCreator(service_name, environment_name, "env.sample").create()
 
-    ServiceUpdater(service_name, environment_name, "env.sample", timeout_seconds=600).run()
     outputs = cfn_client.describe_stacks(StackName=stack_name)['Stacks'][0]['Outputs']
     service_url = [x for x in outputs if x["OutputKey"] == "DummyURL"][0]['OutputValue']
-    expected = 'This is dummy app. Label: Value from secret manager. Redis PING: PONG. AWS EC2 READ ACCESS: True'
+
+    expected = 'This is dummy app. Label: Value from secret manager v1. Redis PING: PONG. AWS EC2 READ ACCESS: True'
     content_matched = wait_until(lambda: match_page_content(service_url, expected), 60)
     assert content_matched
+
+    print("modifying configuration in secrets manager")
+    _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager v2'})
+
+    ServiceUpdater(service_name, environment_name, "env.sample", timeout_seconds=600).run()
+    expected = 'This is dummy app. Label: Value from secret manager v2. Redis PING: PONG. AWS EC2 READ ACCESS: True'
+    content_matched = wait_until(lambda: match_page_content(service_url, expected), 60)
+    assert content_matched
+
     if not keep_resources:
         cfn_client.delete_stack(StackName=stack_name)
 
