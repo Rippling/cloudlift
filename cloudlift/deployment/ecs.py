@@ -18,7 +18,7 @@ from boto3.session import Session
 from botocore.exceptions import ClientError, NoCredentialsError
 from botocore.config import Config
 from dateutil.tz.tz import tzlocal
-
+from cloudlift.exceptions import UnrecoverableException
 
 class EcsClient(object):
     def __init__(self, access_key_id=None, secret_access_key=None,
@@ -393,9 +393,20 @@ class EcsAction(object):
         )
 
     def get_current_task_definition(self, service):
+        task_definition_arn = service.task_definition
+        return self.getEcsTaskDefinitionByArn(task_definition_arn)
+
+    def get_previous_task_definition(self, service):
+        task_definition_arn = self.get_current_task_definition(service).tags.get('previous_task_definition_arn')
+        if task_definition_arn is None:
+            raise UnrecoverableException('previous_task_definition_arn doesn\'t exist for current task definition')
+        return self.getEcsTaskDefinitionByArn(task_definition_arn)
+
+    def getEcsTaskDefinitionByArn(self, task_definition_arn):
         task_definition_payload = self._client.describe_task_definition(
-            task_definition_arn=service.task_definition
+            task_definition_arn=task_definition_arn,
         )
+        task_definition_payload[u'taskDefinition']['tags'] = task_definition_payload['tags']
         task_definition = EcsTaskDefinition(
             task_definition=task_definition_payload[u'taskDefinition']
         )

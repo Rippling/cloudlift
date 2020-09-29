@@ -19,16 +19,44 @@ def find_essential_container(container_definitions):
     raise UnrecoverableException('no essential containers found')
 
 
+def revert_last_deployment(client, cluster_name, ecs_service_name, color, timeout_seconds, secrets_name):
+    previous_task_definition = get_previous_task_definition(client, cluster_name, ecs_service_name)
+    deploy_task_definition(client, previous_task_definition, cluster_name, ecs_service_name, color, timeout_seconds, action_name='Revert')
+
+
+def get_previous_task_definition(client, cluster_name, ecs_service_name):
+    deployment = DeployAction(client, cluster_name, ecs_service_name)
+    return deployment.get_previous_task_definition(deployment.service)
+
+
 def deploy_new_version(client, cluster_name, ecs_service_name,
                        deploy_version_tag, service_name, sample_env_file_path,
                        timeout_seconds, env_name, secrets_name, color='white', complete_image_uri=None):
-    log_bold("Starting to deploy " + ecs_service_name)
+    task_definition = create_new_task_definition(color, complete_image_uri, deploy_version_tag, ecs_service_name,
+                                                 env_name, sample_env_file_path, secrets_name, service_name, client,
+                                                 cluster_name)
+    deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_seconds,
+                           action_name='Deploy')
+
+
+def deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_seconds, action_name='Deploy'):
     deployment = DeployAction(client, cluster_name, ecs_service_name)
+    log_bold(f"Starting {action_name} for" + ecs_service_name)
     if deployment.service.desired_count == 0:
         desired_count = 1
     else:
         desired_count = deployment.service.desired_count
     deployment.service.set_desired_count(desired_count)
+    deployment_succeeded = deploy_and_wait(deployment, task_definition, color, timeout_seconds)
+    if not deployment_succeeded:
+        record_deployment_failure_metric(deployment.cluster_name, deployment.service_name)
+        raise UnrecoverableException(ecs_service_name + f" {action_name} failed.")
+    log_bold(ecs_service_name + f" {action_name} successfully.")
+
+
+def create_new_task_definition(color, complete_image_uri, deploy_version_tag, ecs_service_name, env_name,
+                               sample_env_file_path, secrets_name, service_name, client, cluster_name):
+    deployment = DeployAction(client, cluster_name, ecs_service_name)
     task_definition = deployment.get_current_task_definition(deployment.service)
     essential_container = find_essential_container(task_definition[u'containerDefinitions'])
     container_configurations = build_config(env_name, service_name, sample_env_file_path, essential_container,
@@ -42,14 +70,7 @@ def deploy_new_version(client, cluster_name, ecs_service_name,
         task_definition.apply_container_environment_and_secrets(container, env_config)
     print_task_diff(ecs_service_name, task_definition.diff, color)
     new_task_definition = deployment.update_task_definition(task_definition)
-
-    deployment_succeeded = deploy_and_wait(deployment, new_task_definition, color, timeout_seconds)
-
-    if not deployment_succeeded:
-        record_deployment_failure_metric(deployment.cluster_name, deployment.service_name)
-        raise UnrecoverableException(ecs_service_name + " Deployment failed.")
-
-    log_bold(ecs_service_name + " Deployed successfully.")
+    return new_task_definition
 
 
 def deploy_and_wait(deployment, new_task_definition, color, timeout_seconds):
