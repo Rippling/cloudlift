@@ -12,11 +12,5 @@ def deduce_name(name):
     return stringcase.spinalcase(name)
 
 
-def repo_name():
-    res = f"{__sanitized_dirname()}-repo"
-    log_bold("Repo name is: " + res)
-    return res
-
-
 def __sanitized_dirname():
-    return path.basename(getcwd()).replace('rippling-', '')
+    return path.basename(getcwd())
