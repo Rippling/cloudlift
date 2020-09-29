@@ -78,7 +78,7 @@ ECS services")
 @click.option('--env_sample_file', default='env.sample', help='env sample file path')
 def create_service(name, environment, version, build_arg, dockerfile, env_sample_file):
     ServiceCreator(name, environment, env_sample_file).create(
-        version=version, build_arg=build_arg, dockerfile=dockerfile,
+        version=version, build_arg=dict(build_arg), dockerfile=dockerfile,
     )
 
 
@@ -142,7 +142,7 @@ def deploy_service(name, environment, timeout_seconds, version, build_arg, docke
 @click.option('--dockerfile', default=None, help='The Dockerfile path used to build')
 @click.option('--env_sample_file', default='env.sample', help='env sample file path')
 def upload_to_ecr(name, environment, additional_tags, build_arg, dockerfile, env_sample_file):
-    updater = ServiceUpdater(name, environment, env_sample_file, build_args=build_arg, dockerfile=dockerfile)
+    updater = ServiceUpdater(name, environment, env_sample_file, build_args=dict(build_arg), dockerfile=dockerfile)
     updater.ecr.upload_artefacts()
     updater.ecr.add_tags(additional_tags)
 
