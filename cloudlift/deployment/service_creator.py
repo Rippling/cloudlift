@@ -116,6 +116,7 @@ class ServiceCreator(object):
                 version=current_version,
             )
 
+            log_bold("Checking if image is present: {}".format(ecr.image_uri))
             if not ecr.is_image_present():
                 ecr.copy_image_from(current_account_id, current_ecr_repo)
 

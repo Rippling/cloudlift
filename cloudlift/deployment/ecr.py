@@ -85,7 +85,6 @@ branch or commit SHA")
             return None
 
     def copy_image_from(self, source_account_id, source_ecr_repo):
-
         try:
             source_repo_path = ECR_DOCKER_PATH.format(source_account_id, self.region, source_ecr_repo)
             source_uri = "{}:{}".format(source_repo_path, self.version)
@@ -93,8 +92,12 @@ branch or commit SHA")
             subprocess.check_call(["docker", "pull", source_uri])
             subprocess.check_call(["docker", "tag", source_uri, self.image_uri])
             subprocess.check_call(["docker", "push", self.image_uri])
+        except subprocess.CalledProcessError as e:
+            log_err(e.stderr)
+            log_err(e.stdout)
+            raise UnrecoverableException("error copying image")
         except:
-            raise UnrecoverableException("Local image was not found.")
+            raise UnrecoverableException("error copying image")
 
     def is_image_present(self):
         return self._find_image_in_ecr(self.version) is not None
