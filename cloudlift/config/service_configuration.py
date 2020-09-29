@@ -151,6 +151,7 @@ class ServiceConfiguration(object):
         self.set_config(config)
 
     def validate(self):
+        log_bold("Running post-save validation:")
         self._validate_changes(self.get_config(strip_cloudlift_version=False))
 
     def _validate_changes(self, configuration):
