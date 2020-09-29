@@ -1132,7 +1132,7 @@ building this service",
         if service_name in self.desired_counts:
             return self.desired_counts[service_name]
         else:
-            return 0
+            return 1
 
     @property
     def account_id(self):
