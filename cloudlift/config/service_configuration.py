@@ -11,7 +11,7 @@ from click import confirm, edit
 from cloudlift.exceptions import UnrecoverableException
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
-from stringcase import pascalcase
+from stringcase import pascalcase, spinalcase
 
 from cloudlift.config import DecimalEncoder
 from cloudlift.config import print_json_changes
@@ -411,7 +411,7 @@ class ServiceConfiguration(object):
     def _default_service_configuration(self):
         return {
             u'ecr_repo': {
-                u'name': self.service_name,
+                u'name': spinalcase("{}-repo".format(self.service_name)),
             },
             u'services': {
                 pascalcase(self.service_name): {
