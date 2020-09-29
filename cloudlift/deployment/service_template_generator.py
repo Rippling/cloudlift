@@ -1020,7 +1020,7 @@ building this service",
                 Output(
                     "ECRAssumeRoleARN",
                     Description="Role to assume to interact with ECR",
-                    Value=ecr_repo_config.get('account_id')
+                    Value=ecr_repo_config.get('assume_role_arn')
                 )
             )
 
