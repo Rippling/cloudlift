@@ -75,7 +75,6 @@ ECS services")
                                                                   "as --build-args. Supports multiple.\
                                                                    Please leave space between name and value")
 @click.option('--dockerfile', default=None, help='The Dockerfile path used to build')
-
 @click.option('--env_sample_file', default='env.sample', help='env sample file path')
 def create_service(name, environment, version, build_arg, dockerfile, env_sample_file):
     ServiceCreator(name, environment, env_sample_file).create(
@@ -133,12 +132,19 @@ def deploy_service(name, environment, timeout_seconds, version, build_arg, docke
 
 
 @cli.command()
-@click.option('--local_tag', help='Commit sha for image to be uploaded')
+@_require_environment
+@_require_name
 @click.option('--additional_tags', default=[], multiple=True,
               help='Additional tags for the image apart from commit SHA')
-@_require_name
-def upload_to_ecr(name, local_tag, additional_tags):
-    ServiceUpdater(name, version=local_tag).ecr.upload_image(additional_tags)
+@click.option("--build-arg", type=(str, str), multiple=True, help="These args are passed to docker build command "
+                                                                  "as --build-args. Supports multiple.\
+                                                                   Please leave space between name and value")
+@click.option('--dockerfile', default=None, help='The Dockerfile path used to build')
+@click.option('--env_sample_file', default='env.sample', help='env sample file path')
+def upload_to_ecr(name, environment, additional_tags, build_arg, dockerfile, env_sample_file):
+    updater = ServiceUpdater(name, environment, env_sample_file, build_args=build_arg, dockerfile=dockerfile)
+    updater.ecr.upload_artefacts()
+    updater.ecr.add_tags(additional_tags)
 
 
 @cli.command(help="Get commit information of currently deployed code \
