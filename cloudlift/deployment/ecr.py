@@ -2,6 +2,7 @@ import base64
 import subprocess
 
 import boto3
+import json
 from stringcase import spinalcase
 
 from cloudlift.config.logging import log_bold, log_err, log_intent, log_warning
@@ -173,6 +174,31 @@ version to be " + self.version + " based on current status")
                 log_intent('Repo exists with name: ' + self.repo_name)
             else:
                 raise ex
+
+        if get_account_id() != self.account_id:
+            log_intent('Setting cross account ECR access: ' + self.repo_name)
+            self.client.set_repository_policy(
+                repositoryName=self.repo_name,
+                policyText=json.dumps(
+                    {
+                        "Version": "2008-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "AllowCrossAccountPull",
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "AWS": [get_account_id()]
+                                },
+                                "Action": [
+                                    "ecr:GetDownloadUrlForLayer",
+                                    "ecr:BatchCheckLayerAvailability",
+                                    "ecr:BatchGetImage"
+                                ]
+                            }
+                        ]
+                    }
+                )
+            )
 
     def upload_artefacts(self):
         self.ensure_repository()

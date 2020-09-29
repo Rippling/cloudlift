@@ -1125,9 +1125,6 @@ building this service",
                 return i
         return -1
 
-    def _add_to_alb_listener_in_subpath(self, service_name, alb_listener_arn, subpath, target_group):
-        priority = self._get_free_priority_from_listener(alb_listener_arn)
-
     def _get_desired_task_count_for_service(self, service_name):
         if service_name in self.desired_counts:
             return self.desired_counts[service_name]
