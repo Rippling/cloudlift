@@ -88,7 +88,7 @@ class TestECR(TestCase):
         )
 
         expected_policy_text = {"Version": "2008-10-17", "Statement": [
-            {"Sid": "AllowCrossAccountPull", "Effect": "Allow", "Principal": {"AWS": ["98765"]},
+            {"Sid": "AllowCrossAccountPull-98765", "Effect": "Allow", "Principal": {"AWS": ["98765"]},
              "Action": ["ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage"]}]}
 
         mock_ecr_client.set_repository_policy.assert_called_with(

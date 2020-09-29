@@ -195,7 +195,8 @@ version to be " + self.version + " based on current status")
             else:
                 raise ex
 
-        if get_account_id() != self.account_id:
+        current_account_id = get_account_id()
+        if current_account_id != self.account_id:
             log_intent('Setting cross account ECR access: ' + self.repo_name)
             self.client.set_repository_policy(
                 repositoryName=self.repo_name,
@@ -204,10 +205,10 @@ version to be " + self.version + " based on current status")
                         "Version": "2008-10-17",
                         "Statement": [
                             {
-                                "Sid": "AllowCrossAccountPull",
+                                "Sid": "AllowCrossAccountPull-{}".format(current_account_id),
                                 "Effect": "Allow",
                                 "Principal": {
-                                    "AWS": [get_account_id()]
+                                    "AWS": [current_account_id]
                                 },
                                 "Action": [
                                     "ecr:GetDownloadUrlForLayer",
