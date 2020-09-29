@@ -98,12 +98,10 @@ class TestECR(TestCase):
 
 
     @patch("cloudlift.deployment.ecr.subprocess")
-    @patch("cloudlift.deployment.ecr.get_account_id")
     @patch("cloudlift.deployment.ecr._create_ecr_client")
-    def test_copy_image(self, mock_create_ecr_client, mock_get_account_id, mock_subprocess):
+    def test_copy_image(self, mock_create_ecr_client, mock_subprocess):
         mock_ecr_client = MagicMock()
         mock_create_ecr_client.return_value = mock_ecr_client
-        mock_get_account_id.return_value = "98765"
 
         ecr = ECR("aws-region", "target-repo", "target-acc-id", version="v1")
 
@@ -116,12 +114,10 @@ class TestECR(TestCase):
             call(['docker', 'push', 'target-acc-id.dkr.ecr.aws-region.amazonaws.com/target-repo:v1']),
         ], any_order=False)
 
-    @patch("cloudlift.deployment.ecr.get_account_id")
     @patch("cloudlift.deployment.ecr._create_ecr_client")
-    def test_is_image_present_returns_true(self, mock_create_ecr_client, mock_get_account_id):
+    def test_is_image_present_returns_true(self, mock_create_ecr_client):
         mock_ecr_client = MagicMock()
         mock_create_ecr_client.return_value = mock_ecr_client
-        mock_get_account_id.return_value = "98765"
 
         mock_ecr_client.batch_get_image.return_value = {'images': [MagicMock()]}
 
@@ -133,12 +129,10 @@ class TestECR(TestCase):
             imageIds=[{'imageTag': 'v1'}]
         )
 
-    @patch("cloudlift.deployment.ecr.get_account_id")
     @patch("cloudlift.deployment.ecr._create_ecr_client")
-    def test_is_image_present_returns_false(self, mock_create_ecr_client, mock_get_account_id):
+    def test_is_image_present_returns_false(self, mock_create_ecr_client):
         mock_ecr_client = MagicMock()
         mock_create_ecr_client.return_value = mock_ecr_client
-        mock_get_account_id.return_value = "98765"
 
         mock_ecr_client.batch_get_image.return_value = {'images': []}
 
@@ -149,3 +143,18 @@ class TestECR(TestCase):
             repositoryName='test-repo',
             imageIds=[{'imageTag': 'v1'}]
         )
+
+    def test_image_uri(self):
+        ecr = ECR("aws-region", "target-repo", "acc-id", version="v1")
+
+        self.assertEqual("acc-id.dkr.ecr.aws-region.amazonaws.com/target-repo:v1", ecr.image_uri)
+
+    def test_repo_path(self):
+        ecr = ECR("aws-region", "target-repo", "acc-id", version="v1")
+
+        self.assertEqual("acc-id.dkr.ecr.aws-region.amazonaws.com/target-repo", ecr.repo_path)
+
+    def test_local_image_uri(self):
+        ecr = ECR("aws-region", "target-repo", "acc-id", version="v1")
+
+        self.assertEqual("target-repo:v1", ecr.local_image_uri)
