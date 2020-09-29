@@ -29,6 +29,9 @@ class ServiceUpdater(object):
         self.ecr_client = boto3.session.Session(region_name=self.region).client('ecr')
         self.cluster_name = get_cluster_name(environment)
         self.service_info_fetcher = ServiceInformationFetcher(self.name, self.environment)
+        if not self.service_info_fetcher.stack_found:
+            raise UnrecoverableException(
+                "error finding stack in ServiceUpdater: {}-{}".format(self.name, self.environment))
         self.ecr = ECR(
             self.region,
             self.service_info_fetcher.ecr_repo_name,

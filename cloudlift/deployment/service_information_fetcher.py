@@ -21,6 +21,7 @@ class ServiceInformationFetcher(object):
         try:
             cfn_client = get_client_for('cloudformation', self.environment)
             stack = cfn_client.describe_stacks(StackName=stack_name)['Stacks'][0]
+            self.stack_found = True
             ecs_service_outputs = list(
                 filter(
                     lambda x: x['OutputKey'].endswith('EcsServiceName'),
@@ -52,8 +53,8 @@ class ServiceInformationFetcher(object):
         except Exception as e:
             self.ecs_service_names = []
             self.ecs_service_logical_name_mappings = []
+            self.stack_found = False
             log_warning("Could not determine services.")
-            log_warning(e)
 
     def get_current_version(self):
         commit_sha = self._fetch_current_task_definition_tag()
