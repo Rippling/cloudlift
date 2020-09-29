@@ -18,6 +18,7 @@ from cloudlift.deployment.service_template_generator import ServiceTemplateGener
 from cloudlift.deployment.cloud_formation_stack import prepare_stack_options_for_template
 from cloudlift.deployment.ecr import ECR
 from cloudlift.deployment.service_information_fetcher import ServiceInformationFetcher
+from cloudlift.config.account import get_account_id
 
 
 class ServiceCreator(object):
@@ -102,6 +103,8 @@ class ServiceCreator(object):
 
         try:
             information_fetcher = ServiceInformationFetcher(self.service_configuration.service_name, self.environment)
+            current_ecr_repo = information_fetcher.ecr_repo_name
+            current_account_id = get_account_id()
             current_version = information_fetcher.get_current_version()
             desired_counts = information_fetcher.fetch_current_desired_count()
             ecr_repo_config = self.service_configuration.get_config().get('ecr_repo')
@@ -112,6 +115,10 @@ class ServiceCreator(object):
                 assume_role_arn=ecr_repo_config.get('assume_role_arn', None),
                 version=current_version,
             )
+
+            if not ecr.is_image_present():
+                ecr.copy_image_from(current_account_id, current_ecr_repo)
+
 
             template_generator = ServiceTemplateGenerator(
                 self.service_configuration,

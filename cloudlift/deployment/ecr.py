@@ -9,6 +9,8 @@ from cloudlift.config.logging import log_bold, log_err, log_intent, log_warning
 from cloudlift.exceptions import UnrecoverableException
 from cloudlift.config.account import get_account_id
 
+ECR_DOCKER_PATH = "{}.dkr.ecr.{}.amazonaws.com/{}"
+
 
 class ECR:
     def __init__(self, region, repo_name, account_id=None, assume_role_arn=None, version=None,
@@ -81,6 +83,21 @@ branch or commit SHA")
             )['images'][0]
         except:
             return None
+
+    def copy_image_from(self, source_account_id, source_ecr_repo):
+
+        try:
+            source_repo_path = ECR_DOCKER_PATH.format(source_account_id, self.region, source_ecr_repo)
+            source_uri = "{}:{}".format(source_repo_path, self.version)
+            log_intent("Attempting to copy from {} to {}".format(source_uri, self.image_uri))
+            subprocess.check_call(["docker", "pull", source_uri])
+            subprocess.check_call(["docker", "tag", source_uri, self.image_uri])
+            subprocess.check_call(["docker", "push", self.image_uri])
+        except:
+            raise UnrecoverableException("Local image was not found.")
+
+    def is_image_present(self):
+        return self._find_image_in_ecr(self.version) is not None
 
     def ensure_image_in_ecr(self):
         if self.version:
@@ -213,7 +230,7 @@ version to be " + self.version + " based on current status")
 
     @property
     def repo_path(self):
-        return "{}.dkr.ecr.{}.amazonaws.com/{}".format(
+        return ECR_DOCKER_PATH.format(
             str(self.account_id),
             self.region,
             self.repo_name,
