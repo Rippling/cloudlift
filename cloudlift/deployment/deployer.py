@@ -18,7 +18,7 @@ def find_essential_container(container_definitions):
     raise UnrecoverableException('no essential containers found')
 
 
-def revert_last_deployment(client, cluster_name, ecs_service_name, color, timeout_seconds):
+def revert_last_deployment(client, cluster_name, ecs_service_name, color, timeout_seconds, **kwargs):
     deployment = DeployAction(client, cluster_name, ecs_service_name)
     previous_task_defn = deployment.get_previous_task_definition(deployment.service)
     deploy_task_definition(client, previous_task_defn, cluster_name, ecs_service_name, color, timeout_seconds, 'Revert')
