@@ -5,15 +5,15 @@ import click
 from botocore.exceptions import ClientError
 
 from cloudlift.config import highlight_production
-from cloudlift.deployment.configs import deduce_name
-from cloudlift.deployment import EnvironmentCreator, editor
 from cloudlift.config.logging import log_err
+from cloudlift.deployment import EnvironmentCreator, editor
+from cloudlift.deployment.configs import deduce_name
 from cloudlift.deployment.service_creator import ServiceCreator
 from cloudlift.deployment.service_information_fetcher import ServiceInformationFetcher
 from cloudlift.deployment.service_updater import ServiceUpdater
+from cloudlift.exceptions import UnrecoverableException
 from cloudlift.session import SessionCreator
 from cloudlift.version import VERSION
-from cloudlift.exceptions import UnrecoverableException
 
 
 def _require_environment(func):
@@ -134,6 +134,13 @@ def deploy_service(name, environment, timeout_seconds, version, build_arg, docke
 @cli.command()
 @_require_environment
 @_require_name
+@click.option('--timeout_seconds', default=600, help='The deployment timeout')
+def revert_service(name, environment, timeout_seconds):
+    ServiceUpdater(name, environment, timeout_seconds=timeout_seconds).revert()
+
+
+@cli.command()
+@click.option('--local_tag', help='Commit sha for image to be uploaded')
 @click.option('--additional_tags', default=[], multiple=True,
               help='Additional tags for the image apart from commit SHA')
 @click.option("--build-arg", type=(str, str), multiple=True, help="These args are passed to docker build command "

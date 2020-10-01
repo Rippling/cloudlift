@@ -5,6 +5,8 @@ from unittest import TestCase
 
 from cfn_flip import to_json, to_yaml, load
 from mock import patch, MagicMock, call
+from moto import mock_dynamodb2
+
 
 from cloudlift.config import ServiceConfiguration
 from cloudlift.deployment.service_template_generator import ServiceTemplateGenerator
@@ -146,13 +148,12 @@ def mocked_udp_fargate_service_config():
 
 class TestServiceTemplateGenerator(TestCase):
 
-    @patch('cloudlift.config.service_configuration.get_resource_for')
-    def test_initialization(self, mock_get_resource_for):
-        service_config = ServiceConfiguration("test-service", "staging")
+    def test_initialization(self):
+        mock_service_configuration = MagicMock(spec=ServiceConfiguration, service_name="test-service",
+                                               environment="staging")
 
-        generator = ServiceTemplateGenerator(service_config, None, "env.sample", "test-account/test-image:1234")
+        generator = ServiceTemplateGenerator(mock_service_configuration, None, "env.sample", ecr_image_uri="image:v1")
 
-        mock_get_resource_for.assert_called_with('dynamodb', 'staging')
         assert generator.env == 'staging'
         assert generator.application_name == 'test-service'
         assert generator.environment_stack is None

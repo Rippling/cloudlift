@@ -54,35 +54,40 @@ class ServiceUpdater(object):
         log_bold("Initiating deployment\n")
         ecs_client = EcsClient(None, None, self.region)
 
+        image_url = self.ecr.image_uri
+        image_url += (':' + self.version)
+        target = deployer.deploy_new_version
+        kwargs = dict(client=ecs_client, cluster_name=self.cluster_name,
+                      deploy_version_tag=self.version,
+                      service_name=self.name, sample_env_file_path=self.env_sample_file,
+                      timeout_seconds=self.timeout_seconds, env_name=self.environment,
+                      complete_image_uri=image_url)
+        self.run_job_for_all_services("Deploy", target, kwargs)
+
+    def revert(self):
+        target = deployer.revert_last_deployment
+        ecs_client = EcsClient(None, None, self.region)
+        kwargs = dict(client=ecs_client, cluster_name=self.cluster_name, timeout_seconds=self.timeout_seconds)
+        self.run_job_for_all_services("Revert", target, kwargs)
+
+    def run_job_for_all_services(self, job_name, target, kwargs):
+        log_bold("{} concurrency: {}".format(job_name, DEPLOYMENT_CONCURRENCY))
         jobs = []
-        log_bold("Deployment concurrency: {}".format(DEPLOYMENT_CONCURRENCY))
         service_info = self.service_info_fetcher.service_info
         for index, ecs_service_logical_name in enumerate(service_info):
             ecs_service_info = service_info[ecs_service_logical_name]
-            log_bold("Queueing deployment of " + ecs_service_info['ecs_service_name'])
+            log_bold(f"Queueing {job_name} of " + ecs_service_info['ecs_service_name'])
             color = DEPLOYMENT_COLORS[index % 3]
-            image_url = self.ecr.image_uri
+            kwargs.update(dict(ecs_service_name=ecs_service_info['ecs_service_name'],
+                               secrets_name=ecs_service_info.get('secrets_name'),
+                               color=color))
             process = multiprocessing.Process(
-                target=deployer.deploy_new_version,
-                args=(
-                    ecs_client,
-                    self.cluster_name,
-                    ecs_service_info['ecs_service_name'],
-                    self.version,
-                    self.name,
-                    self.env_sample_file,
-                    self.timeout_seconds,
-                    self.environment,
-                    ecs_service_info.get('secrets_name'),
-                    color,
-                    image_url
-                )
+                target=target,
+                kwargs=kwargs
             )
             jobs.append(process)
-
         all_exit_codes = []
         for chunk_of_jobs in chunks(jobs, DEPLOYMENT_CONCURRENCY):
-            exit_codes = []
             for process in chunk_of_jobs:
                 process.start()
 
@@ -94,9 +99,8 @@ class ServiceUpdater(object):
 
             for exit_code in exit_codes:
                 all_exit_codes.append(exit_code)
-
         if any(all_exit_codes) != 0:
-            raise UnrecoverableException("Deployment failed")
+            raise UnrecoverableException(f"{job_name} failed")
 
     @property
     def region(self):
