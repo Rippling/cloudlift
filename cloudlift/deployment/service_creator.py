@@ -103,29 +103,14 @@ class ServiceCreator(object):
 
         try:
             information_fetcher = ServiceInformationFetcher(self.service_configuration.service_name, self.environment)
-            current_ecr_repo = information_fetcher.ecr_repo_name
-            current_account_id = get_account_id()
-            current_version = information_fetcher.get_current_version()
+            current_image_uri = information_fetcher.get_current_image_uri()
             desired_counts = information_fetcher.fetch_current_desired_count()
-            ecr_repo_config = self.service_configuration.get_config().get('ecr_repo')
-            ecr = ECR(
-                region=get_region_for_environment(self.environment),
-                repo_name=ecr_repo_config.get('name'),
-                account_id=ecr_repo_config.get('account_id', None),
-                assume_role_arn=ecr_repo_config.get('assume_role_arn', None),
-                version=current_version,
-            )
-
-            log_bold("Checking if image is present: {}".format(ecr.image_uri))
-            if not ecr.is_image_present():
-                ecr.copy_image_from(current_account_id, current_ecr_repo)
-
 
             template_generator = ServiceTemplateGenerator(
                 self.service_configuration,
                 self.environment_stack,
                 self.env_sample_file,
-                ecr.image_uri,
+                current_image_uri,
                 desired_counts,
             )
             service_template_body = template_generator.generate_service()

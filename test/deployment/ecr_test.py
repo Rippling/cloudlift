@@ -97,53 +97,6 @@ class TestECR(TestCase):
         )
 
 
-    @patch("cloudlift.deployment.ecr.subprocess")
-    @patch("cloudlift.deployment.ecr._create_ecr_client")
-    def test_copy_image(self, mock_create_ecr_client, mock_subprocess):
-        mock_ecr_client = MagicMock()
-        mock_create_ecr_client.return_value = mock_ecr_client
-
-        ecr = ECR("aws-region", "target-repo", "target-acc-id", version="v1")
-
-        ecr.copy_image_from("source-acc-id", "source-repo")
-
-        mock_subprocess.check_call.assert_has_calls(calls=[
-            call(['docker', 'pull', 'source-acc-id.dkr.ecr.aws-region.amazonaws.com/source-repo:v1']),
-            call(['docker', 'tag', 'source-acc-id.dkr.ecr.aws-region.amazonaws.com/source-repo:v1',
-                  'target-acc-id.dkr.ecr.aws-region.amazonaws.com/target-repo:v1']),
-            call(['docker', 'push', 'target-acc-id.dkr.ecr.aws-region.amazonaws.com/target-repo:v1']),
-        ], any_order=False)
-
-    @patch("cloudlift.deployment.ecr._create_ecr_client")
-    def test_is_image_present_returns_true(self, mock_create_ecr_client):
-        mock_ecr_client = MagicMock()
-        mock_create_ecr_client.return_value = mock_ecr_client
-
-        mock_ecr_client.batch_get_image.return_value = {'images': [MagicMock()]}
-
-        ecr = ECR("aws-region", "test-repo", "target-acc-id", version="v1")
-
-        self.assertTrue(ecr.is_image_present())
-        mock_ecr_client.batch_get_image.assert_called_with(
-            repositoryName='test-repo',
-            imageIds=[{'imageTag': 'v1'}]
-        )
-
-    @patch("cloudlift.deployment.ecr._create_ecr_client")
-    def test_is_image_present_returns_false(self, mock_create_ecr_client):
-        mock_ecr_client = MagicMock()
-        mock_create_ecr_client.return_value = mock_ecr_client
-
-        mock_ecr_client.batch_get_image.return_value = {'images': []}
-
-        ecr = ECR("aws-region", "test-repo", "target-acc-id", version="v1")
-
-        self.assertFalse(ecr.is_image_present())
-        mock_ecr_client.batch_get_image.assert_called_with(
-            repositoryName='test-repo',
-            imageIds=[{'imageTag': 'v1'}]
-        )
-
     def test_image_uri(self):
         ecr = ECR("aws-region", "target-repo", "acc-id", version="v1")
 

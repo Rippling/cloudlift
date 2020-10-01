@@ -2,7 +2,7 @@ from subprocess import call
 
 from cloudlift.config import get_client_for
 from cloudlift.config import get_cluster_name, get_service_stack_name
-from cloudlift.config.logging import log, log_bold, log_err, log_warning
+from cloudlift.config.logging import log, log_bold, log_err, log_warning, log_intent
 from cloudlift.exceptions import UnrecoverableException
 from cloudlift.deployment.ecs import DeployAction, EcsClient
 from cloudlift.config import get_region_for_environment
@@ -56,10 +56,10 @@ class ServiceInformationFetcher(object):
             self.stack_found = False
             log_warning("Could not determine services.")
 
-    def get_current_version(self):
-        commit_sha = self._fetch_current_task_definition_tag()
-        log_warning(f"Currently deployed tag: {commit_sha}")
-        return str(commit_sha)
+    def get_current_image_uri(self):
+        ecr_image_uri = self._fetch_current_image_uri()
+        log_intent(f"Currently deployed tag: {ecr_image_uri}")
+        return str(ecr_image_uri)
 
     def get_instance_ids(self):
         instance_ids = {}
@@ -112,27 +112,27 @@ fetched.")
                 call(["git", "branch", "-r", "--contains", commit_sha])
                 log("")
 
-    def _fetch_current_task_definition_tag(self):
-        try:
-            ecs_client = get_client_for('ecs', self.environment)
-            service = self.ecs_service_names[0]
-            task_arns = ecs_client.list_tasks(
-                cluster=self.cluster_name,
-                serviceName=service
-            )['taskArns']
-            tasks = ecs_client.describe_tasks(
-                cluster=self.cluster_name,
-                tasks=task_arns
-            )['tasks']
-            task_definition_arns = tasks[0]['taskDefinitionArn']
-            task_definition = ecs_client.describe_task_definition(
-                taskDefinition=task_definition_arns
-            )
-            image = task_definition['taskDefinition']['containerDefinitions'][0]['image']
-            commit_sha = image.split('-repo:')[1]
-            return commit_sha
-        except Exception:
-            return None
+    def _fetch_current_image_uri(self):
+        ecs_client = get_client_for('ecs', self.environment)
+        service = self.ecs_service_names[0]
+        task_arns = ecs_client.list_tasks(
+            cluster=self.cluster_name,
+            serviceName=service
+        )['taskArns']
+
+        if len(task_arns) < 1:
+            raise UnrecoverableException("cannot get running image_uri: no task ARNs found for service")
+
+        tasks = ecs_client.describe_tasks(
+            cluster=self.cluster_name,
+            tasks=task_arns
+        )['tasks']
+
+        task_definition_arns = tasks[0]['taskDefinitionArn']
+        task_definition = ecs_client.describe_task_definition(
+            taskDefinition=task_definition_arns
+        )
+        return task_definition['taskDefinition']['containerDefinitions'][0]['image']
 
     # TODO: Test cover this. Also this can use boto ecs client describe_services method. That can describe up to 10
     #  services in one call. It would be simpler implementation to test as well. We can also use self.service_info

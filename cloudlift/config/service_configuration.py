@@ -8,16 +8,16 @@ import json
 import dictdiffer
 from botocore.exceptions import ClientError
 from click import confirm, edit
-from cloudlift.exceptions import UnrecoverableException
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from stringcase import pascalcase, spinalcase
 
 from cloudlift.config import DecimalEncoder
-from cloudlift.config import print_json_changes
 # import config.mfa as mfa
 from cloudlift.config import get_resource_for
-from cloudlift.config.logging import log_bold, log_err, log_warning
+from cloudlift.config import print_json_changes
+from cloudlift.config.logging import log_bold, log_warning
+from cloudlift.exceptions import UnrecoverableException
 from cloudlift.version import VERSION
 
 SERVICE_CONFIGURATION_TABLE = 'service_configurations'
