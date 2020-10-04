@@ -78,8 +78,6 @@ class ServiceConfiguration(DynamodbConfig):
                 ))
                 if not differences:
                     log_warning("No changes made.")
-                    # Validate if old configuration is correct.
-                    self._validate_changes(updated_configuration)
                 else:
                     print_json_changes(differences)
                     if confirm('Do you want update the config?'):
