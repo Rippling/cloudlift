@@ -27,9 +27,11 @@ service_name = 'cfn-dummy'
 def mocked_service_config(cls, *args, **kwargs):
     return {
         "cloudlift_version": VERSION,
+        'ecr_repo': {'name': 'dummy-repo'},
         "services": {
             "Dummy": {
                 "command": None,
+                "secrets_name": "{}-{}".format(service_name, environment_name),
                 "sidecars": [
                     {"name": "redis", "image": "redis", "memory_reservation": 256}
                 ],
@@ -54,6 +56,7 @@ def mocked_service_config(cls, *args, **kwargs):
 def mocked_service_with_secrets_manager_config(cls, *args, **kwargs):
     return {
         "cloudlift_version": VERSION,
+        'ecr_repo': {'name': 'dummy-repo'},
         "services": {
             "Dummy": {
                 "command": None,
@@ -113,7 +116,7 @@ def test_cloudlift_can_revert_service(keep_resources):
 
 def test_cloudlift_service_with_secrets_manager_config(keep_resources):
     print("adding configuration to secrets manager")
-    _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager'})
+    _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager v1'})
     mocked_config = mocked_service_with_secrets_manager_config
     stack_name = f'{service_name}-{environment_name}'
     cfn_client = boto3.client('cloudformation')

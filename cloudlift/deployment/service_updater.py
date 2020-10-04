@@ -55,7 +55,6 @@ class ServiceUpdater(object):
         ecs_client = EcsClient(None, None, self.region)
 
         image_url = self.ecr.image_uri
-        image_url += (':' + self.version)
         target = deployer.deploy_new_version
         kwargs = dict(client=ecs_client, cluster_name=self.cluster_name,
                       deploy_version_tag=self.version,
