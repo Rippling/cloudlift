@@ -100,29 +100,37 @@ version to be " + self.version + " based on current status")
 
         current_account_id = get_account_id()
         if current_account_id != self.account_id:
-            log_intent('Setting cross account ECR access: ' + self.repo_name)
-            self.client.set_repository_policy(
-                repositoryName=self.repo_name,
-                policyText=json.dumps(
-                    {
-                        "Version": "2008-10-17",
-                        "Statement": [
-                            {
-                                "Sid": "AllowCrossAccountPull-{}".format(current_account_id),
-                                "Effect": "Allow",
-                                "Principal": {
-                                    "AWS": [current_account_id]
-                                },
-                                "Action": [
-                                    "ecr:GetDownloadUrlForLayer",
-                                    "ecr:BatchCheckLayerAvailability",
-                                    "ecr:BatchGetImage"
-                                ]
-                            }
-                        ]
-                    }
+            current_policy = self.client.get_repository_policy(repositoryName=self.repo_name)
+            current_policy_text = json.loads(current_policy.get('policyText', '{}'))
+            statements = current_policy_text.get('Statement', [])
+
+            account_id_sid = "AllowCrossAccountPull-{}".format(current_account_id)
+            sid_exists = any(stmt.get('Sid', None) == account_id_sid for stmt in statements)
+
+            if not sid_exists:
+                statements.append({
+                    "Sid": "AllowCrossAccountPull-{}".format(current_account_id),
+                    "Effect": "Allow",
+                    "Principal": {
+                        "AWS": [current_account_id]
+                    },
+                    "Action": [
+                        "ecr:GetDownloadUrlForLayer",
+                        "ecr:BatchCheckLayerAvailability",
+                        "ecr:BatchGetImage"
+                    ]
+                })
+
+                log_intent('Setting cross account ECR access: ' + self.repo_name)
+                self.client.set_repository_policy(
+                    repositoryName=self.repo_name,
+                    policyText=json.dumps(
+                        {
+                            "Version": "2008-10-17",
+                            "Statement": statements
+                        }
+                    )
                 )
-            )
 
     @property
     def image_uri(self):

@@ -77,6 +77,11 @@ class TestECR(TestCase):
         mock_ecr_client = MagicMock()
         mock_create_ecr_client.return_value = mock_ecr_client
         mock_get_account_id.return_value = "98765"
+        mock_ecr_client.get_repository_policy.return_value = {
+            'registryId': '12345',
+            'repositoryName': 'test-repo',
+            'policyText': '{}'
+        }
 
         ecr = ECR("aws-region", "test-repo", "12345")
 
@@ -96,6 +101,67 @@ class TestECR(TestCase):
             policyText=json.dumps(expected_policy_text),
         )
 
+    @patch("cloudlift.deployment.ecr.get_account_id")
+    @patch("cloudlift.deployment.ecr._create_ecr_client")
+    def test_ensure_repository_with_cross_account_access_with_existing_permissions(self, mock_create_ecr_client,
+                                                                                   mock_get_account_id):
+        mock_ecr_client = MagicMock()
+        mock_create_ecr_client.return_value = mock_ecr_client
+        mock_get_account_id.return_value = "98765"
+        mock_ecr_client.get_repository_policy.return_value = {
+            'registryId': '12345',
+            'repositoryName': 'test-repo',
+            'policyText': '{"Version": "2008-10-17", "Statement": [ \
+            {"Sid": "AllowCrossAccountPull-abcde", "Effect": "Allow", "Principal": {"AWS": ["98765"]}, \
+             "Action": ["ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage"]}]}'
+        }
+
+        ecr = ECR("aws-region", "test-repo", "12345")
+
+        ecr.ensure_repository()
+
+        mock_ecr_client.create_repository.assert_called_with(
+            repositoryName='test-repo',
+            imageScanningConfiguration={'scanOnPush': True}
+        )
+
+        expected_policy_text = {"Version": "2008-10-17", "Statement": [
+            {"Sid": "AllowCrossAccountPull-abcde", "Effect": "Allow", "Principal": {"AWS": ["98765"]},
+             "Action": ["ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage"]},
+            {"Sid": "AllowCrossAccountPull-98765", "Effect": "Allow", "Principal": {"AWS": ["98765"]},
+             "Action": ["ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage"]}]}
+
+        mock_ecr_client.set_repository_policy.assert_called_with(
+            repositoryName='test-repo',
+            policyText=json.dumps(expected_policy_text),
+        )
+
+    @patch("cloudlift.deployment.ecr.get_account_id")
+    @patch("cloudlift.deployment.ecr._create_ecr_client")
+    def test_ensure_repository_with_cross_account_access_already_present(self,
+                                     mock_create_ecr_client,
+                                     mock_get_account_id):
+        mock_ecr_client = MagicMock()
+        mock_create_ecr_client.return_value = mock_ecr_client
+        mock_get_account_id.return_value = "98765"
+        mock_ecr_client.get_repository_policy.return_value = {
+            'registryId': '12345',
+            'repositoryName': 'test-repo',
+            'policyText': '{"Version": "2008-10-17", "Statement": [ \
+                {"Sid": "AllowCrossAccountPull-98765", "Effect": "Allow", "Principal": {"AWS": ["98765"]}, \
+                 "Action": ["ecr:GetDownloadUrlForLayer", "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage"]}]}'
+        }
+
+        ecr = ECR("aws-region", "test-repo", "12345")
+
+        ecr.ensure_repository()
+
+        mock_ecr_client.create_repository.assert_called_with(
+            repositoryName='test-repo',
+            imageScanningConfiguration={'scanOnPush': True}
+        )
+
+        mock_ecr_client.set_repository_policy.assert_not_called()
 
     def test_image_uri(self):
         ecr = ECR("aws-region", "target-repo", "acc-id", version="v1")
