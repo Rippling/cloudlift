@@ -24,6 +24,125 @@ class ECR:
         self.dockerfile = dockerfile
         self.working_dir = working_dir
 
+    def ensure_image_in_ecr(self):
+        if self.version:
+            try:
+                commit_sha = self._find_commit_sha(self.version)
+            except:
+                commit_sha = self.version
+            log_intent("Using commit hash " + commit_sha + " to find image")
+            image = self._find_image_in_ecr(commit_sha)
+            if not image:
+                log_warning("Please build, tag and upload the image for the \
+commit " + commit_sha)
+                raise UnrecoverableException("Image for given version could not be found.")
+        else:
+            dirty = subprocess.check_output(
+                ["git", "status", "--short"]
+            ).decode("utf-8")
+            if dirty:
+                self.version = 'dirty'
+                log_intent("Version parameter was not provided. Determined \
+version to be " + self.version + " based on current status")
+                image = None
+            else:
+                self.version = self._find_commit_sha()
+                log_intent("Version parameter was not provided. Determined \
+version to be " + self.version + " based on current status")
+                image = self._find_image_in_ecr(self.version)
+
+            if image:
+                log_intent("Image found in ECR")
+            else:
+                log_bold("Image not found in ECR. Building image")
+                self._build_image()
+                self._push_image()
+                image = self._find_image_in_ecr(self.version)
+        try:
+            image_manifest = image['imageManifest']
+            self.client.put_image(
+                repositoryName=self.repo_name,
+                imageTag=self.version,
+                imageManifest=image_manifest
+            )
+        except Exception:
+            pass
+
+    def add_tags(self, additional_tags):
+        for new_tag in additional_tags:
+            self._add_image_tag(self.version, new_tag)
+
+    def upload_artefacts(self):
+        self.ensure_repository()
+        self.ensure_image_in_ecr()
+
+    def upload_image(self, additional_tags):
+        self.ensure_repository()
+        self._push_image()
+
+        for new_tag in additional_tags:
+            self._add_image_tag(self.version, new_tag)
+
+    def ensure_repository(self):
+        try:
+            self.client.create_repository(
+                repositoryName=self.repo_name,
+                imageScanningConfiguration={
+                    'scanOnPush': True
+                },
+            )
+            log_intent('Repo created with name: ' + self.repo_name)
+        except Exception as ex:
+            if type(ex).__name__ == 'RepositoryAlreadyExistsException':
+                log_intent('Repo exists with name: ' + self.repo_name)
+            else:
+                raise ex
+
+        current_account_id = get_account_id()
+        if current_account_id != self.account_id:
+            log_intent('Setting cross account ECR access: ' + self.repo_name)
+            self.client.set_repository_policy(
+                repositoryName=self.repo_name,
+                policyText=json.dumps(
+                    {
+                        "Version": "2008-10-17",
+                        "Statement": [
+                            {
+                                "Sid": "AllowCrossAccountPull-{}".format(current_account_id),
+                                "Effect": "Allow",
+                                "Principal": {
+                                    "AWS": [current_account_id]
+                                },
+                                "Action": [
+                                    "ecr:GetDownloadUrlForLayer",
+                                    "ecr:BatchCheckLayerAvailability",
+                                    "ecr:BatchGetImage"
+                                ]
+                            }
+                        ]
+                    }
+                )
+            )
+
+    @property
+    def image_uri(self):
+        return "{}:{}".format(
+            self.repo_path,
+            self.version
+        )
+
+    @property
+    def repo_path(self):
+        return ECR_DOCKER_PATH.format(
+            str(self.account_id),
+            self.region,
+            self.repo_name,
+        )
+
+    @property
+    def local_image_uri(self):
+        return spinalcase(self.repo_name) + ':' + self.version
+
     def _login_to_ecr(self):
         log_intent("Attempting login...")
         auth_token_res = self.client.get_authorization_token()
@@ -84,50 +203,6 @@ branch or commit SHA")
         except:
             return None
 
-    def ensure_image_in_ecr(self):
-        if self.version:
-            try:
-                commit_sha = self._find_commit_sha(self.version)
-            except:
-                commit_sha = self.version
-            log_intent("Using commit hash " + commit_sha + " to find image")
-            image = self._find_image_in_ecr(commit_sha)
-            if not image:
-                log_warning("Please build, tag and upload the image for the \
-commit " + commit_sha)
-                raise UnrecoverableException("Image for given version could not be found.")
-        else:
-            dirty = subprocess.check_output(
-                ["git", "status", "--short"]
-            ).decode("utf-8")
-            if dirty:
-                self.version = 'dirty'
-                log_intent("Version parameter was not provided. Determined \
-version to be " + self.version + " based on current status")
-                image = None
-            else:
-                self.version = self._find_commit_sha()
-                log_intent("Version parameter was not provided. Determined \
-version to be " + self.version + " based on current status")
-                image = self._find_image_in_ecr(self.version)
-
-            if image:
-                log_intent("Image found in ECR")
-            else:
-                log_bold("Image not found in ECR. Building image")
-                self._build_image()
-                self._push_image()
-                image = self._find_image_in_ecr(self.version)
-        try:
-            image_manifest = image['imageManifest']
-            self.client.put_image(
-                repositoryName=self.repo_name,
-                imageTag=self.version,
-                imageManifest=image_manifest
-            )
-        except Exception:
-            pass
-
     def _build_image(self):
         image_name = self.local_image_uri
         log_bold(
@@ -150,81 +225,6 @@ version to be " + self.version + " based on current status")
             for k, v in self.build_args.items():
                 build_args_command_fragment.append("--build-arg " + "=".join((k, v)))
             return build_args_command_fragment
-
-    def upload_image(self, additional_tags):
-        self.ensure_repository()
-        self._push_image()
-
-        for new_tag in additional_tags:
-            self._add_image_tag(self.version, new_tag)
-
-    def add_tags(self, additional_tags):
-        for new_tag in additional_tags:
-            self._add_image_tag(self.version, new_tag)
-
-    def ensure_repository(self):
-        try:
-            self.client.create_repository(
-                repositoryName=self.repo_name,
-                imageScanningConfiguration={
-                    'scanOnPush': True
-                },
-            )
-            log_intent('Repo created with name: ' + self.repo_name)
-        except Exception as ex:
-            if type(ex).__name__ == 'RepositoryAlreadyExistsException':
-                log_intent('Repo exists with name: ' + self.repo_name)
-            else:
-                raise ex
-
-        current_account_id = get_account_id()
-        if current_account_id != self.account_id:
-            log_intent('Setting cross account ECR access: ' + self.repo_name)
-            self.client.set_repository_policy(
-                repositoryName=self.repo_name,
-                policyText=json.dumps(
-                    {
-                        "Version": "2008-10-17",
-                        "Statement": [
-                            {
-                                "Sid": "AllowCrossAccountPull-{}".format(current_account_id),
-                                "Effect": "Allow",
-                                "Principal": {
-                                    "AWS": [current_account_id]
-                                },
-                                "Action": [
-                                    "ecr:GetDownloadUrlForLayer",
-                                    "ecr:BatchCheckLayerAvailability",
-                                    "ecr:BatchGetImage"
-                                ]
-                            }
-                        ]
-                    }
-                )
-            )
-
-    def upload_artefacts(self):
-        self.ensure_repository()
-        self.ensure_image_in_ecr()
-
-    @property
-    def image_uri(self):
-        return "{}:{}".format(
-            self.repo_path,
-            self.version
-        )
-
-    @property
-    def repo_path(self):
-        return ECR_DOCKER_PATH.format(
-            str(self.account_id),
-            self.region,
-            self.repo_name,
-        )
-
-    @property
-    def local_image_uri(self):
-        return spinalcase(self.repo_name) + ':' + self.version
 
 
 def _create_ecr_client(region, assume_role_arn=None):
