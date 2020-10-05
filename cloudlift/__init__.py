@@ -149,9 +149,8 @@ def revert_service(name, environment, timeout_seconds):
 @click.option('--dockerfile', default=None, help='The Dockerfile path used to build')
 @click.option('--env_sample_file', default='env.sample', help='env sample file path')
 def upload_to_ecr(name, environment, additional_tags, build_arg, dockerfile, env_sample_file):
-    updater = ServiceUpdater(name, environment, env_sample_file, build_args=dict(build_arg), dockerfile=dockerfile)
-    updater.ecr.upload_artefacts()
-    updater.ecr.add_tags(additional_tags)
+    ServiceUpdater(name, environment, env_sample_file, build_args=dict(build_arg), dockerfile=dockerfile) \
+        .upload_to_ecr(additional_tags)
 
 
 @cli.command(help="Get commit information of currently deployed code \

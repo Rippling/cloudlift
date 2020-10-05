@@ -69,6 +69,10 @@ class ServiceUpdater(object):
         kwargs = dict(client=ecs_client, cluster_name=self.cluster_name, timeout_seconds=self.timeout_seconds)
         self.run_job_for_all_services("Revert", target, kwargs)
 
+    def upload_to_ecr(self, additional_tags):
+        self.ecr.upload_artefacts()
+        self.ecr.add_tags(additional_tags)
+
     def run_job_for_all_services(self, job_name, target, kwargs):
         log_bold("{} concurrency: {}".format(job_name, DEPLOYMENT_CONCURRENCY))
         jobs = []
