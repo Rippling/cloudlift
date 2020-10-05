@@ -11,6 +11,8 @@ from click import confirm, edit
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 from stringcase import pascalcase, spinalcase
+from os import getcwd
+from os.path import basename
 
 from cloudlift.config import DecimalEncoder, DynamodbConfig
 # import config.mfa as mfa
@@ -372,9 +374,10 @@ class ServiceConfiguration(DynamodbConfig):
         log_bold("Schema valid!")
 
     def _default_service_configuration(self):
+        cwd = basename(getcwd())
         return {
             u'ecr_repo': {
-                u'name': spinalcase("{}-repo".format(self.service_name)),
+                u'name': spinalcase("{}-repo".format(cwd)),
             },
             u'services': {
                 pascalcase(self.service_name): {

@@ -1,4 +1,5 @@
 from unittest import TestCase
+from unittest.mock import patch
 
 import boto3
 from moto import mock_dynamodb2
@@ -153,6 +154,16 @@ class TestServiceConfiguration(object):
 
 
 class TestServiceConfigurationValidation(TestCase):
+    @mock_dynamodb2
+    @patch("cloudlift.config.service_configuration.getcwd")
+    def test_default_service_configuration_ecr_repo(self, getcwd):
+        getcwd.return_value = "/path/to/dummy"
+
+        service = ServiceConfiguration('test-service', 'test')
+        conf = service._default_service_configuration()
+
+        self.assertEqual({'name': 'dummy-repo'}, conf.get('ecr_repo'))
+
     @mock_dynamodb2
     def test_set_config_placement_constraints(self):
         service = ServiceConfiguration('test-service', 'test')
