@@ -133,7 +133,15 @@ def edit_config(name, environment, sidecar):
 @click.option('--cache-from', multiple=True, help='Images to consider as cache sources')
 def deploy_service(name, environment, timeout_seconds, version, build_arg, dockerfile, env_sample_file, ssh, cache_from):
     ServiceUpdater(
-        name, environment, env_sample_file, timeout_seconds, version, dict(build_arg), dockerfile, ssh, list(cache_from),
+        name,
+        environment=environment,
+        env_sample_file=env_sample_file,
+        timeout_seconds=timeout_seconds,
+        version=version,
+        build_args=dict(build_arg),
+        dockerfile=dockerfile,
+        ssh=ssh,
+        cache_from=list(cache_from),
     ).run()
 
 
