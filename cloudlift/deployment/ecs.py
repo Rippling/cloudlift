@@ -20,6 +20,7 @@ from botocore.config import Config
 from dateutil.tz.tz import tzlocal
 from cloudlift.exceptions import UnrecoverableException
 
+
 class EcsClient(object):
     def __init__(self, access_key_id=None, secret_access_key=None,
                  region=None, profile=None):
@@ -40,8 +41,14 @@ class EcsClient(object):
         )
 
     def list_task_definitions(self, family):
-        return self.boto.list_task_definitions(familyPrefix=family, status='ACTIVE', sort='DESC')[
-            'taskDefinitionArns']
+        response = self.boto.list_task_definitions(familyPrefix=family, status='ACTIVE', sort='DESC')
+        task_definition_arns = response.get('taskDefinitionArns')
+
+        while 'nextToken' in response:
+            response = self.boto.list_task_definitions(next_token=response['nextToken'])
+            task_definition_arns.extend(response.get('taskDefinitionArns'))
+
+        return task_definition_arns
 
     def describe_task_definition(self, task_definition_arn):
         try:

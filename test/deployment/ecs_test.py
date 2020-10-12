@@ -1,5 +1,7 @@
 import unittest
-from cloudlift.deployment.ecs import EcsTaskDefinition
+from cloudlift.deployment.ecs import EcsTaskDefinition, EcsAction, EcsClient
+
+from mock import MagicMock, patch, call
 
 
 class TestEcsTaskDefinition(unittest.TestCase):
@@ -76,6 +78,58 @@ class TestEcsTaskDefinition(unittest.TestCase):
         self.assertEqual(diff.field, 'secrets')
         self.assertEqual(diff.value, {"LABEL": 'arn:v2'})
         self.assertEqual(diff.old_value, {"LABEL": 'arn:v1'})
+
+
+class TestEcsAction(unittest.TestCase):
+    def test_get_previous_task_definition(self):
+        cluster_name = "cluster-1"
+        service_name = MagicMock()
+        service_name.task_definition.return_value.family.return_value = "prodServiceAFamily"
+        client = MagicMock()
+        client.list_task_definitions.return_value = ['arn1', 'arn2', 'arn3', 'arn4']
+
+        def mock_describe_task_definition(task_definition_arn):
+            if task_definition_arn == 'arn3':
+                return {'taskDefinition': {'taskDefinitionArn': task_definition_arn}, 'tags': [
+                    {'key': 'deployment_identifier', 'value': 'id-0'},
+                ]}
+            else:
+                return {'taskDefinition': {'taskDefinitionArn': task_definition_arn}, 'tags': {}}
+
+        client.describe_task_definition.side_effect = mock_describe_task_definition
+
+        action = EcsAction(client, cluster_name, service_name)
+
+        actual_td = action.get_previous_task_definition(service=service_name, deployment_identifier="id-0")
+
+        self.assertEqual('arn3', actual_td.arn)
+        self.assertEqual({'deployment_identifier': 'id-0'}, actual_td.tags)
+        client.list_task_definitions.assert_called_with = 'prodServiceAFamily'
+
+
+class TestEcsClient(unittest.TestCase):
+    @patch("cloudlift.deployment.ecs.Session")
+    def test_list_task_definitions(self, mock_session):
+        mock_boto_client = MagicMock()
+        mock_session.return_value.client.return_value = mock_boto_client
+
+        client = EcsClient()
+
+        mock_boto_client.list_task_definitions.side_effect = [
+            {'taskDefinitionArns': ['arn1', 'arn2'], 'nextToken': 'token1'},
+            {'taskDefinitionArns': ['arn3']},
+        ]
+
+        arns = client.list_task_definitions('family1')
+
+        self.assertEqual(
+            ['arn1', 'arn2', 'arn3'],
+            arns,
+        )
+        mock_boto_client.list_task_definitions.assert_has_calls([
+            call(familyPrefix='family1', status='ACTIVE', sort='DESC'),
+            call(next_token='token1')
+        ])
 
 
 def _build_task_definition(container_defn):
