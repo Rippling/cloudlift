@@ -64,10 +64,9 @@ commit " + self.version)
                 imageTag=self.version,
                 imageManifest=image_manifest
             )
-
-            self._add_image_tag(self.version, f'{self.version}-{self._git_epoch_time()}')
         except Exception:
             pass
+        self._add_image_tag(self.version, f'{self.version}-{self._git_epoch_time()}')
 
     def add_tags(self, additional_tags):
         for new_tag in additional_tags:
