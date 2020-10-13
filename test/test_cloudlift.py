@@ -90,7 +90,7 @@ def test_cloudlift_can_deploy_to_ec2(keep_resources):
     cfn_client = boto3.client('cloudformation')
     delete_stack(cfn_client, stack_name, wait=True)
     create_service(mocked_config)
-    deploy_service()
+    deploy_service(deployment_identifier="id-0")
     validate_service(cfn_client, stack_name, expected_string)
     if not keep_resources:
         delete_stack(cfn_client, stack_name, wait=False)
@@ -102,10 +102,31 @@ def test_cloudlift_can_revert_service(keep_resources):
     cfn_client = boto3.client('cloudformation')
     delete_stack(cfn_client, stack_name, wait=True)
     create_service(mocked_config)
-    deploy_service(deployment_identifier='test')
-    deploy_service(deployment_identifier='pest')  # redeploying service because revert of first deploy doesn't work.
-    revert_service(deployment_identifier='test')
-    assert get_current_task_definition_deployment_identifier(cfn_client, stack_name) == 'test'
+
+    _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager v1'})
+    deploy_service(deployment_identifier='id-1')
+    validate_service(
+        cfn_client,
+        stack_name,
+        'This is dummy app. Label: Value from secret manager v1. Redis PING: PONG. AWS EC2 READ ACCESS: True',
+    )
+
+    _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager v2'})
+    deploy_service(deployment_identifier='id-2')
+    validate_service(
+        cfn_client,
+        stack_name,
+        'This is dummy app. Label: Value from secret manager v2. Redis PING: PONG. AWS EC2 READ ACCESS: True',
+    )
+
+    revert_service(deployment_identifier='id-1')
+    validate_service(
+        cfn_client,
+        stack_name,
+        'This is dummy app. Label: Value from secret manager v1. Redis PING: PONG. AWS EC2 READ ACCESS: True',
+    )
+
+    assert get_current_task_definition_deployment_identifier(cfn_client, stack_name) == 'id-1'
     if not keep_resources:
         delete_stack(cfn_client, stack_name, wait=False)
 
@@ -113,7 +134,6 @@ def test_cloudlift_can_revert_service(keep_resources):
 def test_cloudlift_service_with_secrets_manager_config(keep_resources):
     print("adding configuration to secrets manager")
     _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager v1'})
-    secrets_manager.clear_cache()
     mocked_config = mocked_service_with_secrets_manager_config
     stack_name = f'{service_name}-{environment_name}'
     cfn_client = boto3.client('cloudformation')
@@ -128,9 +148,8 @@ def test_cloudlift_service_with_secrets_manager_config(keep_resources):
 
     print("modifying configuration in secrets manager")
     _set_secrets_manager_config(f"{service_name}-{environment_name}", {'LABEL': 'Value from secret manager v2'})
-    secrets_manager.clear_cache()
 
-    deploy_service()
+    deploy_service(deployment_identifier="id-0")
     validate_service(
         cfn_client,
         stack_name,
@@ -225,3 +244,4 @@ def _set_secrets_manager_config(secret_name, config):
         client.put_secret_value(SecretId=secret_name, SecretString=secret_string)
     except client.exceptions.ResourceNotFoundException:
         client.create_secret(Name=secret_name, SecretString=secret_string)
+    secrets_manager.clear_cache()
