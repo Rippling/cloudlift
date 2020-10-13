@@ -86,7 +86,7 @@ class TestEcsAction(unittest.TestCase):
         service_name = MagicMock()
         service_name.task_definition.return_value.family.return_value = "prodServiceAFamily"
         client = MagicMock()
-        client.list_task_definitions.return_value = ['arn1', 'arn2', 'arn3', 'arn4']
+        client.list_task_definitions.return_value = (['arn1', 'arn2', 'arn3', 'arn4'], None)
 
         def mock_describe_task_definition(task_definition_arn):
             if task_definition_arn == 'arn3':
@@ -106,10 +106,11 @@ class TestEcsAction(unittest.TestCase):
         self.assertEqual({'deployment_identifier': 'id-0'}, actual_td.tags)
         client.list_task_definitions.assert_called_with = 'prodServiceAFamily'
 
-
-class TestEcsClient(unittest.TestCase):
     @patch("cloudlift.deployment.ecs.Session")
-    def test_list_task_definitions(self, mock_session):
+    def test_get_previous_task_definition_with_next_token(self, mock_session):
+        cluster_name = "cluster-1"
+        service_name = MagicMock()
+        service_name.task_definition.return_value.family.return_value = "prodServiceAFamily"
         mock_boto_client = MagicMock()
         mock_session.return_value.client.return_value = mock_boto_client
 
@@ -117,17 +118,27 @@ class TestEcsClient(unittest.TestCase):
 
         mock_boto_client.list_task_definitions.side_effect = [
             {'taskDefinitionArns': ['arn1', 'arn2'], 'nextToken': 'token1'},
-            {'taskDefinitionArns': ['arn3']},
+            {'taskDefinitionArns': ['arn3', 'arn3']},
         ]
 
-        arns = client.list_task_definitions('family1')
+        def mock_describe_task_definition(taskDefinition, include):
+            if taskDefinition == 'arn3':
+                return {'taskDefinition': {'taskDefinitionArn': taskDefinition}, 'tags': [
+                    {'key': 'deployment_identifier', 'value': 'id-0'},
+                ]}
+            else:
+                return {'taskDefinition': {'taskDefinitionArn': taskDefinition}, 'tags': {}}
 
-        self.assertEqual(
-            ['arn1', 'arn2', 'arn3'],
-            arns,
-        )
+        mock_boto_client.describe_task_definition.side_effect = mock_describe_task_definition
+
+        action = EcsAction(client, cluster_name, service_name)
+
+        actual_td = action.get_previous_task_definition(service=service_name, deployment_identifier="id-0")
+
+        self.assertEqual('arn3', actual_td.arn)
+        self.assertEqual({'deployment_identifier': 'id-0'}, actual_td.tags)
         mock_boto_client.list_task_definitions.assert_has_calls([
-            call(familyPrefix='family1', status='ACTIVE', sort='DESC'),
+            call(familyPrefix=None, status='ACTIVE', sort='DESC'),
             call(next_token='token1')
         ])
 
