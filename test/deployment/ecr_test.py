@@ -194,6 +194,40 @@ class TestECR(TestCase):
             call(imageManifest='manifest-01', imageTag='v1-1602236172', repositoryName='target-repo'),
         ])
 
+    @patch("cloudlift.deployment.ecr.log_intent")
+    @patch("cloudlift.deployment.ecr.subprocess")
+    @patch("cloudlift.deployment.ecr._create_ecr_client")
+    def test_ensure_image_in_ecr_with_local_tag(self, mock_create_ecr_client,
+                                                mock_subprocess, mock_log_intent):
+        mock_ecr_client = MagicMock()
+        mock_create_ecr_client.return_value = mock_ecr_client
+        mock_ecr_client.batch_get_image.side_effect = [
+            {'images': []},
+            {'images': [{'imageManifest': 'manifest-01'}]},
+            {'images': [{'imageManifest': 'manifest-01'}]},
+        ]
+
+        mock_ecr_client.get_authorization_token.return_value = {
+            'authorizationData': [
+                {'authorizationToken': 'dXNlcjp0b2tlbgo=', 'proxyEndpoint': 'http://proxy'}
+            ]
+        }
+
+        mock_subprocess.check_output.side_effect = _mock_git_calls
+
+        ecr = ECR("aws-region", "target-repo", "acc-id", local_tag="target:v1")
+
+        ecr.ensure_image_in_ecr()
+
+        mock_log_intent.assert_has_calls([call('Local docker image URI to push: target:v1')])
+        mock_subprocess.check_call.assert_has_calls([
+            call(['docker', 'tag', 'target:v1', 'acc-id.dkr.ecr.aws-region.amazonaws.com/target-repo:v1']),
+        ])
+        mock_ecr_client.put_image.assert_has_calls([
+            call(imageManifest='manifest-01', imageTag='v1', repositoryName='target-repo'),
+            call(imageManifest='manifest-01', imageTag='v1-1602236172', repositoryName='target-repo'),
+        ])
+
     @patch("cloudlift.deployment.ecr.subprocess")
     @patch("cloudlift.deployment.ecr._create_ecr_client")
     @patch.dict(os.environ, {'ENV': 'test'}, clear=True)

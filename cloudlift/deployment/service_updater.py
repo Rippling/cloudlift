@@ -21,7 +21,7 @@ DEPLOYMENT_CONCURRENCY = int(os.environ.get('CLOUDLIFT_DEPLOYMENT_CONCURRENCY', 
 class ServiceUpdater(object):
     def __init__(self, name, environment='', env_sample_file='', timeout_seconds=None, version=None,
                  build_args=None, dockerfile=None, ssh=None, cache_from=None,
-                 deployment_identifier=None, working_dir='.'):
+                 deployment_identifier=None, working_dir='.', local_tag=None):
         self.name = name
         self.environment = environment
         self.deployment_identifier = deployment_identifier
@@ -35,16 +35,17 @@ class ServiceUpdater(object):
             raise UnrecoverableException(
                 "error finding stack in ServiceUpdater: {}-{}".format(self.name, self.environment))
         self.ecr = ECR(
-            self.region,
-            self.service_info_fetcher.ecr_repo_name,
-            self.service_info_fetcher.ecr_account_id or get_account_id(),
-            self.service_info_fetcher.ecr_assume_role_arn,
-            version,
-            build_args,
-            dockerfile,
-            working_dir,
-            ssh,
-            cache_from
+            region=self.region,
+            repo_name=self.service_info_fetcher.ecr_repo_name,
+            account_id=self.service_info_fetcher.ecr_account_id or get_account_id(),
+            assume_role_arn=self.service_info_fetcher.ecr_assume_role_arn,
+            version=version,
+            build_args=build_args,
+            dockerfile=dockerfile,
+            working_dir=working_dir,
+            ssh=ssh,
+            cache_from=cache_from,
+            local_tag=local_tag,
         )
 
     def run(self):

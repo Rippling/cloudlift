@@ -16,7 +16,7 @@ DEFAULT_DOCKER_FILE = "Dockerfile"
 
 class ECR:
     def __init__(self, region, repo_name, account_id=None, assume_role_arn=None, version=None,
-                 build_args=None, dockerfile=None, working_dir='.', ssh=None, cache_from=None):
+                 build_args=None, dockerfile=None, working_dir='.', ssh=None, cache_from=None, local_tag=None):
         self.repo_name = repo_name
         self.region = region
         self.account_id = account_id or get_account_id()
@@ -27,6 +27,7 @@ class ECR:
         self.working_dir = working_dir
         self.ssh = ssh
         self.cache_from = cache_from
+        self.local_tag = local_tag
 
     def ensure_image_in_ecr(self):
         if self.version:
@@ -53,8 +54,10 @@ commit " + self.version)
             if image:
                 log_intent("Image found in ECR")
             else:
-                log_bold("Image not found in ECR. Building image")
-                self._build_image()
+                log_intent("Image not found in ECR")
+                if not self.local_tag:
+                    log_intent("Building image")
+                    self._build_image()
                 self._push_image()
                 image = self._find_image_in_ecr(self.version)
         try:
@@ -182,7 +185,8 @@ commit " + self.version)
 branch or commit SHA")
 
     def _push_image(self):
-        local_name = self.local_image_uri
+        local_name = self.local_tag or self.local_image_uri
+        log_intent(f"Local docker image URI to push: {local_name}")
         ecr_name = self.image_uri
         try:
             subprocess.check_call(["docker", "tag", local_name, ecr_name])
