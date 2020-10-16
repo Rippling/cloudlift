@@ -35,7 +35,7 @@ def deploy_new_version(client, cluster_name, ecs_service_name, deployment_identi
 
 def deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_secs, action_name):
     deployment = DeployAction(client, cluster_name, ecs_service_name)
-    log_bold(f"Starting {action_name} for" + ecs_service_name)
+    log_bold(f"Starting {action_name} for {ecs_service_name}")
     if deployment.service.desired_count == 0:
         desired_count = 1
     else:
