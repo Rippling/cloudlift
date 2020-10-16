@@ -52,7 +52,8 @@ class ServiceUpdater(object):
         if not os.path.exists(self.env_sample_file):
             raise UnrecoverableException('env.sample not found. Exiting.')
         log_intent("name: " + self.name + " | environment: " +
-                   self.environment + " | version: " + str(self.version))
+                   self.environment + " | version: " + str(self.version) +
+                   " | deployment_identifier: " + self.deployment_identifier)
         log_bold("Checking image in ECR")
         self.ecr.upload_artefacts()
         log_bold("Initiating deployment\n")
