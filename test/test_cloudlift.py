@@ -89,6 +89,7 @@ def test_cloudlift_can_deploy_to_ec2(keep_resources):
     stack_name = f'{service_name}-{environment_name}'
     cfn_client = boto3.client('cloudformation')
     delete_stack(cfn_client, stack_name, wait=True)
+    _set_secrets_manager_config(stack_name, {})
     create_service(mocked_config)
     deploy_service(deployment_identifier="id-0")
     validate_service(cfn_client, stack_name, expected_string)
