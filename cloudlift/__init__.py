@@ -121,7 +121,7 @@ def edit_config(name, environment, sidecar):
 @cli.command()
 @_require_environment
 @_require_name
-@click.option('--deployment_identifier', type=str,
+@click.option('--deployment_identifier', type=str, required=True,
               help='Unique identifier for deployment which can be used for reverting')
 @click.option('--timeout_seconds', default=600, help='The deployment timeout')
 @click.option('--version', default=None,
@@ -152,7 +152,7 @@ def deploy_service(name, environment, timeout_seconds, version, build_arg, docke
 @cli.command()
 @_require_environment
 @_require_name
-@click.option('--deployment_identifier', type=str,
+@click.option('--deployment_identifier', type=str, required=True,
               help='Unique identifier for deployment which can be used for reverting')
 @click.option('--timeout_seconds', default=600, help='The deployment timeout')
 def revert_service(name, environment, timeout_seconds, deployment_identifier):
