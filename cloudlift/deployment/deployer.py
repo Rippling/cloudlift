@@ -20,7 +20,7 @@ def find_essential_container(container_definitions):
 
 def revert_deployment(client, cluster_name, ecs_service_name, color, timeout_seconds, deployment_identifier, **kwargs):
     deployment = DeployAction(client, cluster_name, ecs_service_name)
-    previous_task_defn = deployment.get_previous_task_definition(deployment.service, deployment_identifier)
+    previous_task_defn = deployment.get_task_definition_by_deployment_identifier(deployment.service, deployment_identifier)
     deploy_task_definition(client, previous_task_defn, cluster_name, ecs_service_name, color, timeout_seconds, 'Revert')
 
 

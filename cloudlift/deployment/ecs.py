@@ -412,7 +412,7 @@ class EcsAction(object):
                 return ecs_task_definition
         return None
 
-    def get_previous_task_definition(self, service, deployment_identifier):
+    def get_task_definition_by_deployment_identifier(self, service, deployment_identifier):
         current_task_definition = self.get_current_task_definition(service)
         task_definition_arns, next_token = self._client.list_task_definitions(family=current_task_definition.family)
         td = self._find_task_definition_by_deployment_identifier(task_definition_arns, deployment_identifier)
@@ -425,7 +425,7 @@ class EcsAction(object):
             if td:
                 return td
 
-        raise UnrecoverableException('task definition does not exist for deployment_identifier')
+        raise UnrecoverableException(f'task definition does not exist for deployment_identifier: {deployment_identifier}')
 
     def getEcsTaskDefinitionByArn(self, task_definition_arn):
         task_definition_payload = self._client.describe_task_definition(
