@@ -46,8 +46,7 @@ pipeline {
                     echo "${FOUND_TAG} is being pushed to dockerhub"
                     docker login -u ${DOCKERHUB_LOGIN_USR} -p ${DOCKERHUB_LOGIN_PSW}
                     docker tag cloudlift:${FOUND_TAG} rippling/cloudlift:${FOUND_TAG}
-                    echo '{"experimental": "enabled"}' > ~/.docker/config.json
-                    docker manifest inspect rippling/cloudlift:${FOUND_TAG} > /dev/null || docker push rippling/cloudlift:${FOUND_TAG}
+                    docker push rippling/cloudlift:${FOUND_TAG}
                 '''
             }
         }
