@@ -31,7 +31,7 @@ pipeline {
                     git tag ${FOUND_TAG}
                     git push origin refs/tags/${FOUND_TAG}
                     echo "List of git tag:\n$(git tag -l)"
-                    docker tag cloudlift:${HASH} cloudlift:${FOUND_TAG} .
+                    docker tag cloudlift:${HASH} cloudlift:${FOUND_TAG}
                 '''
             }
         }
