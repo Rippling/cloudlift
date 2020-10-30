@@ -16,12 +16,6 @@ pipeline {
                     git fetch --prune origin "+refs/tags/*:refs/tags/*"
                     echo "Tagging this commit: $(git rev-parse HEAD)"
                 '''
-                script {
-                    def HASH = sh (
-                        returnStdout: true,
-                        script: "git rev-parse HEAD"
-                    )
-                }
             }
         }
         
