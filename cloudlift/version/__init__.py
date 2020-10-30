@@ -1,1 +1,1 @@
-VERSION = '1.test.test'
+VERSION = '1.0.0'
