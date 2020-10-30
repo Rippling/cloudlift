@@ -23,8 +23,7 @@ pipeline {
         
         stage("Build Docker Image") {
             steps {
-                sh
-                '''
+                sh '''
                     HASH=$(cat latest.txt)
                     docker build -t cloudlift:${HASH} .
                 '''
