@@ -27,7 +27,7 @@ pipeline {
                     HASH=$(cat latest.txt)
                     docker build -t cloudlift:${HASH} .
                     FOUND_TAG=v$(docker run cloudlift:${HASH} "--version" | awk '{ print $3}' | sed 's/"//' | sed "s/'//")
-                    echo $FOUND_TAG > tag.txt
+                    /usr/bin/env bash -c echo $FOUND_TAG > tag.txt
                     #git tag ${FOUND_TAG}
                     #git push origin refs/tags/${FOUND_TAG}
                     #echo "List of git tag:\n$(git tag -l)"
