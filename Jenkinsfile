@@ -15,22 +15,25 @@ pipeline {
                     fi
                     git fetch --prune origin "+refs/tags/*:refs/tags/*"
                     echo "Tagging this commit: $(git rev-parse HEAD)"
-                    HASH=$(git rev-parse HEAD)
-                    echo $HASH > latest.txt
                 '''
+                script {
+                    def HASH = sh (
+                        returnStdout: true
+                        script: "git rev-parse HEAD"
+                    )
+                }
             }
         }
         
         stage("Build Docker Image") {
             steps {
                 sh '''
-                    HASH=$(cat latest.txt)
                     docker build -t cloudlift:${HASH} .
                 '''
                 script {
                     def FOUND_TAG = sh(
                         returnStdout: true,
-                        script: 'echo v$(docker run cloudlift:${HASH} "--version" | awk "{ print $3}")'
+                        script: "echo v$(docker run cloudlift:${HASH} '--version' | awk '{ print $3}')"
                     )
                 }
             }
@@ -39,7 +42,6 @@ pipeline {
         stage('Push to ECR') {
             steps {
                 sh '''
-                    FOUND_TAG=$(cat tag.txt)
                     echo "${FOUND_TAG} is being pushed to ECR"
                     aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_RIPPLING_ACCOUNT}
                     docker tag cloudlift:${FOUND_TAG} ${AWS_RIPPLING_ACCOUNT}/cloudlift-repo:${FOUND_TAG}
