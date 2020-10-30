@@ -27,7 +27,7 @@ pipeline {
                 script {
                     def FOUND_TAG = sh(
                         returnStdout: true,
-                        script: "docker run cloudlift:build '--version' | awk '{ print $3 }'"
+                        script: "docker run cloudlift:build '--version' | awk '{ print \$3 }'"
                     )
                 }
             }
