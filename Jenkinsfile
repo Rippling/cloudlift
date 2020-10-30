@@ -18,7 +18,7 @@ pipeline {
                 '''
                 script {
                     def HASH = sh (
-                        returnStdout: true
+                        returnStdout: true,
                         script: "git rev-parse HEAD"
                     )
                 }
