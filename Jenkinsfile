@@ -28,12 +28,12 @@ pipeline {
         stage("Build Docker Image") {
             steps {
                 sh '''
-                    docker build -t cloudlift:${HASH} .
+                    docker build -t cloudlift:build .
                 '''
                 script {
                     def FOUND_TAG = sh(
                         returnStdout: true,
-                        script: "docker run cloudlift:${HASH} '--version' | awk '{ print $3 }'"
+                        script: "docker run cloudlift:build '--version' | awk '{ print $3 }'"
                     )
                 }
             }
