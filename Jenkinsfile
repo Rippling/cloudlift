@@ -33,19 +33,27 @@ pipeline {
                 script {
                     def FOUND_TAG = sh(
                         returnStdout: true,
-                        script: "echo v$(docker run cloudlift:${HASH} '--version' | awk '{ print $3}')"
+                        script: "docker run cloudlift:${HASH} '--version' | awk '{ print $3 }'"
                     )
                 }
             }
         }
-        
+        stage('Tag git') {
+            steps {
+                sh '''
+                    git tag ${FOUND_TAG}
+                    git push origin refs/tags/${FOUND_TAG}
+                    echo "List of git tag:\n$(git tag -l)"
+                '''
+            }
+        }
         stage('Push to ECR') {
             steps {
                 sh '''
-                    echo "${FOUND_TAG} is being pushed to ECR"
+                    echo "v${FOUND_TAG} is being pushed to ECR"
                     aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_RIPPLING_ACCOUNT}
-                    docker tag cloudlift:${FOUND_TAG} ${AWS_RIPPLING_ACCOUNT}/cloudlift-repo:${FOUND_TAG}
-                    docker push ${AWS_RIPPLING_ACCOUNT}/cloudlift-repo:${FOUND_TAG}
+                    docker tag cloudlift:v${FOUND_TAG} ${AWS_RIPPLING_ACCOUNT}/cloudlift-repo:v${FOUND_TAG}
+                    docker push ${AWS_RIPPLING_ACCOUNT}/cloudlift-repo:v${FOUND_TAG}
                 '''
             }
         }
