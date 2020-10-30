@@ -23,16 +23,17 @@ pipeline {
         
         stage("Build Docker Image") {
             steps {
-                sh '''
+                sh
+                '''
                     HASH=$(cat latest.txt)
                     docker build -t cloudlift:${HASH} .
-                    FOUND_TAG=v$(docker run cloudlift:${HASH} "--version" | awk '{ print $3}' | sed 's/"//' | sed "s/'//")
-                    /usr/bin/env bash -c echo $FOUND_TAG > tag.txt
-                    #git tag ${FOUND_TAG}
-                    #git push origin refs/tags/${FOUND_TAG}
-                    #echo "List of git tag:\n$(git tag -l)"
-                    docker tag cloudlift:${HASH} cloudlift:${FOUND_TAG}
                 '''
+                script {
+                    def FOUND_TAG = sh(
+                        returnStdout: true,
+                        script: 'echo v$(docker run cloudlift:${HASH} "--version" | awk "{ print $3}")'
+                    )
+                }
             }
         }
         
