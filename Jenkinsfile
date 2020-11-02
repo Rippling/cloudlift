@@ -31,13 +31,13 @@ pipeline {
         }
         stage('Tag git') {
             steps {
-                environment {
-                    VERSION = sh(
+                script {
+                    env.VERSION = sh(
                         returnStdout: true,
                         script: '''
                             docker run cloudlift:build '--version' | awk '{ print \$3 }'
                         '''
-                    ).trim()
+                    )
                 }
                 sh '''
                     git tag ${VERSION}
