@@ -32,8 +32,7 @@ pipeline {
                     def VERSION = sh(
                         returnStdout: true,
                         script: '''
-                            VERSION=$(docker run cloudlift:build '--version' | awk '{ print \$3 }')
-                            echo ${VERSION}
+                            docker run cloudlift:build '--version' | awk '{ print \$3 }'
                         '''
                     )
                 }
