@@ -24,11 +24,15 @@ pipeline {
                 sh '''
                     docker build -t cloudlift:build .
                 '''
+            }
+        }
+        stage('Tag git') {
+            steps {
                 script {
                     def VERSION = sh(
                         returnStdout: true,
                         script: '''
-                            VERSION=$(docker run cloudlift:build '--version' || echo failed)
+                            VERSION=$(docker run cloudlift:build '--version' | awk '{ print \$3 }')
                             if [ -z "${VERSION}" ]; then
                                 echo "No tag found"
                             exit 1
@@ -37,13 +41,9 @@ pipeline {
                         '''
                     )
                 }
-            }
-        }
-        stage('Tag git') {
-            steps {
                 sh '''
                     echo "${VERSION}"
-                    FOUND_TAG=$(echo ${VERSION} | awk '{ print $3 }')
+                    FOUND_TAG=$(echo ${VERSION})
                     git tag ${FOUND_TAG}
                     git push origin refs/tags/${FOUND_TAG}
                     echo "List of git tag:\n$(git tag -l)"
