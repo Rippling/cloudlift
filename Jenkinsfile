@@ -32,7 +32,7 @@ pipeline {
         stage('Tag git') {
             steps {
                 environment {
-                    VERSION = sh(script: "docker run cloudlift:build --version | awk '{ print \$3 }'", , returnStdout: true).trim()
+                    VERSION = sh(script: "docker run cloudlift:build --version | awk '{ print \$3 }'", returnStdout: true, name: 'blah')
                 }
                 sh '''
                     git tag ${VERSION}
