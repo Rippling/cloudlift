@@ -3,6 +3,9 @@ pipeline {
         label 'dockerbuild'
     }
     options { disableConcurrentBuilds() }
+    environment {
+        VERSION = ""
+    }
     stages {
         stage("Checkout Cloudlift; get latest hash") {
             steps {
