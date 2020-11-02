@@ -43,7 +43,7 @@ pipeline {
             steps {
                 sh '''
                     echo "${VERSION}"
-                    FOUND_TAG=$(echo ${VERSION} | awk '{ print $3 }')=
+                    FOUND_TAG=$(echo ${VERSION} | awk '{ print $3 }')
                     git tag ${FOUND_TAG}
                     git push origin refs/tags/${FOUND_TAG}
                     echo "List of git tag:\n$(git tag -l)"
