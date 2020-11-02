@@ -33,19 +33,13 @@ pipeline {
                         returnStdout: true,
                         script: '''
                             VERSION=$(docker run cloudlift:build '--version' | awk '{ print \$3 }')
-                            if [ -z "${VERSION}" ]; then
-                                echo "No tag found"
-                            exit 1
-                            fi
                             echo ${VERSION}
                         '''
                     )
                 }
                 sh '''
-                    echo "${VERSION}"
-                    FOUND_TAG=$(echo ${VERSION})
-                    git tag ${FOUND_TAG}
-                    git push origin refs/tags/${FOUND_TAG}
+                    git tag ${VERSION}
+                    git push origin refs/tags/${VERSION}
                     echo "List of git tag:\n$(git tag -l)"
                 '''
             }
@@ -53,10 +47,10 @@ pipeline {
         stage('Push to ECR') {
             steps {
                 sh '''
-                    echo "v${FOUND_TAG} is being pushed to ECR"
+                    echo "v${VERSION} is being pushed to ECR"
                     aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_RIPPLING_ACCOUNT}
-                    docker tag cloudlift:v${FOUND_TAG} ${AWS_RIPPLING_ACCOUNT}/cloudlift-repo:v${FOUND_TAG}
-                    docker push ${AWS_RIPPLING_ACCOUNT}/cloudlift-repo:v${FOUND_TAG}
+                    docker tag cloudlift:v${VERSION} ${AWS_RIPPLING_ACCOUNT}/cloudlift-repo:v${VERSION}
+                    docker push ${AWS_RIPPLING_ACCOUNT}/cloudlift-repo:v${VERSION}
                 '''
             }
         }
