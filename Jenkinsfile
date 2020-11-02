@@ -40,6 +40,7 @@ pipeline {
                     )
                 }
                 sh '''
+                    VERSION=${env.VERSION}
                     git tag ${VERSION}
                     git push origin refs/tags/${VERSION}
                     echo "List of git tag:\n$(git tag -l)"
