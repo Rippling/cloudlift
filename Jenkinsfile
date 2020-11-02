@@ -28,7 +28,7 @@ pipeline {
         }
         stage('Tag git') {
             environment {
-                VERSION = sh(script: "docker run cloudlift:build --version | awk '{ print \$3 }'", returnStdout: true, name: 'blah')
+                VERSION = sh(script: "docker run cloudlift:build --version | awk '{ print \$3 }'", returnStdout: true)
             }
             steps {
                 sh '''
@@ -39,6 +39,9 @@ pipeline {
             }
         }
         stage('Push to ECR') {
+            environment {
+                VERSION = sh(script: "docker run cloudlift:build --version | awk '{ print \$3 }'", returnStdout: true)
+            }
             steps {
                 sh '''
                     echo "v${VERSION} is being pushed to ECR"
