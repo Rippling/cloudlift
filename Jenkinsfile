@@ -31,16 +31,10 @@ pipeline {
         }
         stage('Tag git') {
             steps {
-                script {
-                    env.VERSION = sh(
-                        returnStdout: true,
-                        script: '''
-                            docker run cloudlift:build '--version' | awk '{ print \$3 }'
-                        '''
-                    )
+                environment {
+                    VERSION = sh(script: "docker run cloudlift:build --version | awk '{ print \$3 }'", , returnStdout: true).trim()
                 }
                 sh '''
-                    VERSION=${env.VERSION}
                     git tag ${VERSION}
                     git push origin refs/tags/${VERSION}
                     echo "List of git tag:\n$(git tag -l)"
