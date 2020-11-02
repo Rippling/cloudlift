@@ -4,7 +4,7 @@ pipeline {
     }
     options { disableConcurrentBuilds() }
     environment {
-        VERSION = ""
+        VERSION = "SOMETHING"
     }
     stages {
         stage("Checkout Cloudlift; get latest hash") {
