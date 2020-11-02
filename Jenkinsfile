@@ -27,7 +27,7 @@ pipeline {
                 script {
                     def FOUND_TAG = sh(
                         returnStdout: true,
-                        script: "docker run cloudlift:build '--version' | awk '{ print \$3 }'"
+                        script: "docker run cloudlift:build '--version' | awk \'{ print \$3 }\'"
                     )
                 }
             }
@@ -35,6 +35,10 @@ pipeline {
         stage('Tag git') {
             steps {
                 sh '''
+                    if [ -z "${FOUND_TAG}" ]; then
+                       echo "No tag found"
+                       exit 1
+                    fi
                     git tag ${FOUND_TAG}
                     git push origin refs/tags/${FOUND_TAG}
                     echo "List of git tag:\n$(git tag -l)"
