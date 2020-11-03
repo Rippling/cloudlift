@@ -147,6 +147,15 @@ class ServiceConfiguration(DynamodbConfig):
                                 },
                                 "priority": {
                                     "type": "number"
+                                },
+                                "elb_502_error_threshold": {
+                                    "type": "number"
+                                },
+                                "elb_503_error_threshold": {
+                                    "type": "number"
+                                },
+                                "elb_504_error_threshold": {
+                                    "type": "number"
                                 }
                             },
                             "required": [

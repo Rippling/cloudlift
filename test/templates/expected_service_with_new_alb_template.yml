@@ -216,6 +216,63 @@ Resources:
       Path: /
       RoleName: !Sub 'ecs-svc-${AWS::StackName}-${AWS::Region}'
     Type: AWS::IAM::Role
+  ELB502CountDummy:
+    Properties:
+      AlarmActions:
+        - !Ref 'NotificationSnsArn'
+      AlarmDescription: Triggers if 502 response originated from load balancer
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt 'ALBDummy.LoadBalancerFullName'
+      EvaluationPeriods: 1
+      MetricName: HTTPCode_ELB_502_Count
+      Namespace: AWS/ApplicationELB
+      OKActions:
+        - !Ref 'NotificationSnsArn'
+      Period: 60
+      Statistic: Sum
+      Threshold: '5'
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm
+  ELB503CountDummy:
+    Properties:
+      AlarmActions:
+        - !Ref 'NotificationSnsArn'
+      AlarmDescription: Triggers if 503 response originated from load balancer
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt 'ALBDummy.LoadBalancerFullName'
+      EvaluationPeriods: 1
+      MetricName: HTTPCode_ELB_503_Count
+      Namespace: AWS/ApplicationELB
+      OKActions:
+        - !Ref 'NotificationSnsArn'
+      Period: 60
+      Statistic: Sum
+      Threshold: '5'
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm
+  ELB504CountDummy:
+    Properties:
+      AlarmActions:
+        - !Ref 'NotificationSnsArn'
+      AlarmDescription: Triggers if 504 response originated from load balancer
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt 'ALBDummy.LoadBalancerFullName'
+      EvaluationPeriods: 1
+      MetricName: HTTPCode_ELB_504_Count
+      Namespace: AWS/ApplicationELB
+      OKActions:
+        - !Ref 'NotificationSnsArn'
+      Period: 60
+      Statistic: Sum
+      Threshold: '5'
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm
   EcsNoRunningTasksAlarmDummy:
     Properties:
       AlarmActions:
@@ -238,25 +295,6 @@ Resources:
       Threshold: '1'
       TreatMissingData: breaching
     Type: AWS::CloudWatch::Alarm
-  ElbHTTPCodeELB5xxAlarmDummy:
-    Properties:
-      AlarmActions:
-        - !Ref 'NotificationSnsArn'
-      AlarmDescription: Triggers if 5xx response originated from load balancer
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      Dimensions:
-        - Name: LoadBalancer
-          Value: !GetAtt 'ALBDummy.LoadBalancerFullName'
-      EvaluationPeriods: 1
-      MetricName: HTTPCode_ELB_5XX_Count
-      Namespace: AWS/ApplicationELB
-      OKActions:
-        - !Ref 'NotificationSnsArn'
-      Period: 60
-      Statistic: Sum
-      Threshold: '3'
-      TreatMissingData: notBreaching
-    Type: AWS::CloudWatch::Alarm
   ElbRejectedConnectionsAlarmDummy:
     Properties:
       AlarmActions:
@@ -269,25 +307,6 @@ Resources:
           Value: !GetAtt 'ALBDummy.LoadBalancerFullName'
       EvaluationPeriods: 1
       MetricName: RejectedConnectionCount
-      Namespace: AWS/ApplicationELB
-      OKActions:
-        - !Ref 'NotificationSnsArn'
-      Period: 60
-      Statistic: Sum
-      Threshold: '1'
-      TreatMissingData: notBreaching
-    Type: AWS::CloudWatch::Alarm
-  ElbUnhealthyHostAlarmDummy:
-    Properties:
-      AlarmActions:
-        - !Ref 'NotificationSnsArn'
-      AlarmDescription: Triggers if any host is marked unhealthy
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      Dimensions:
-        - Name: LoadBalancer
-          Value: !GetAtt 'ALBDummy.LoadBalancerFullName'
-      EvaluationPeriods: 1
-      MetricName: UnHealthyHostCount
       Namespace: AWS/ApplicationELB
       OKActions:
         - !Ref 'NotificationSnsArn'
