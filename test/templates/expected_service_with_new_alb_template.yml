@@ -4,10 +4,11 @@ Outputs:
     Value: '{"cloudlift_version": "test-version", "notifications_arn": "some", "ecr_repo":
       {"name": "test-service-repo"}, "services": {"Dummy": {"memory_reservation":
       1000, "secrets_name": "something", "command": null, "http_interface": {"internal":
-      false, "alb": {"create_new": true}, "container_port": 7003, "restrict_access_to":
-      ["0.0.0.0/0"], "health_check_path": "/elb-check"}, "autoscaling": {"max_capacity":
-      10, "min_capacity": 5, "request_count_per_target": {"target_value": 10, "scale_in_cool_down_seconds":
-      120, "scale_out_cool_down_seconds": 60}}}}}'
+      false, "alb": {"create_new": true, "target_5xx_error_threshold": 7}, "container_port":
+      7003, "restrict_access_to": ["0.0.0.0/0"], "health_check_path": "/elb-check"},
+      "autoscaling": {"max_capacity": 10, "min_capacity": 5, "request_count_per_target":
+      {"target_value": 10, "scale_in_cool_down_seconds": 120, "scale_out_cool_down_seconds":
+      60}}}}}'
   DummyEcsServiceName:
     Description: The ECS name which needs to be entered
     Value: !GetAtt 'Dummy.Name'
@@ -336,6 +337,27 @@ Resources:
       Threshold: '0'
       TreatMissingData: notBreaching
     Type: AWS::CloudWatch::Alarm
+  HighTarget5XXAlarmTargetGroupDummy:
+    Properties:
+      AlarmActions:
+        - !Ref 'NotificationSnsArn'
+      AlarmDescription: Triggers if target returns 5xx error code
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt 'ALBDummy.LoadBalancerFullName'
+        - Name: TargetGroup
+          Value: !GetAtt 'TargetGroupDummy.TargetGroupFullName'
+      EvaluationPeriods: 1
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      OKActions:
+        - !Ref 'NotificationSnsArn'
+      Period: 60
+      Statistic: Sum
+      Threshold: 7
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm
   LoadBalancerRedirectionListenerDummy:
     Properties:
       DefaultActions:
@@ -415,3 +437,24 @@ Resources:
       UnhealthyThresholdCount: 3
       VpcId: !Ref 'VPC'
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  TargetGroupUnhealthyHostAlarmTargetGroupDummy:
+    Properties:
+      AlarmActions:
+        - !Ref 'NotificationSnsArn'
+      AlarmDescription: Triggers if any host is marked unhealthy
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !GetAtt 'ALBDummy.LoadBalancerFullName'
+        - Name: TargetGroup
+          Value: !GetAtt 'TargetGroupDummy.TargetGroupFullName'
+      EvaluationPeriods: 1
+      MetricName: UnHealthyHostCount
+      Namespace: AWS/ApplicationELB
+      OKActions:
+        - !Ref 'NotificationSnsArn'
+      Period: 60
+      Statistic: Sum
+      Threshold: '1'
+      TreatMissingData: notBreaching
+    Type: AWS::CloudWatch::Alarm

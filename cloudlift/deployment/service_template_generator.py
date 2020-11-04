@@ -417,6 +417,14 @@ service is down',
                         security_group_ingress['SourceSecurityGroupId'] = Ref(alb_sg)
                 else:
                     self.attach_to_existing_listener(config['http_interface']['alb'], service_name, target_group_name)
+                if create_new_alb:
+                    alb_full_name = GetAtt(alb, 'LoadBalancerFullName')
+                else:
+                    try:
+                        alb_full_name = config['http_interface']['alb']['load_balancer_full_name']
+                    except KeyError:
+                        raise UnrecoverableException('load_balancer_full_name is required when create_new_alb is false')
+                self.create_target_group_alarms(target_group_name, target_group, alb_full_name,config['http_interface']['alb'])
 
             if launch_type == self.LAUNCH_TYPE_FARGATE:
                 # if launch type is ec2, then services inherit the ec2 instance security group
@@ -927,6 +935,59 @@ service is down',
             MetricName='UnHealthyHostCount',
             TreatMissingData='notBreaching'
         )
+
+    def create_target_group_alarms(self, target_group_name, target_group, alb_full_name,alb_config):
+        unhealthy_alarm = Alarm(
+            'TargetGroupUnhealthyHostAlarm' + target_group_name,
+            EvaluationPeriods=1,
+            Dimensions=[
+                MetricDimension(
+                    Name='LoadBalancer',
+                    Value=alb_full_name
+                ),
+                MetricDimension(
+                    Name='TargetGroup',
+                    Value=GetAtt(target_group, 'TargetGroupFullName')
+                )
+            ],
+            AlarmActions=[Ref(self.notification_sns_arn)],
+            OKActions=[Ref(self.notification_sns_arn)],
+            AlarmDescription='Triggers if any host is marked unhealthy',
+            Namespace='AWS/ApplicationELB',
+            Period=60,
+            ComparisonOperator='GreaterThanOrEqualToThreshold',
+            Statistic='Sum',
+            Threshold='1',
+            MetricName='UnHealthyHostCount',
+            TreatMissingData='notBreaching'
+        )
+        self.template.add_resource(unhealthy_alarm)
+
+        high_5xx_alarm = Alarm(
+            'HighTarget5XXAlarm' + target_group_name,
+            EvaluationPeriods=1,
+            Dimensions=[
+                MetricDimension(
+                    Name='LoadBalancer',
+                    Value=alb_full_name
+                ),
+                MetricDimension(
+                    Name='TargetGroup',
+                    Value=GetAtt(target_group, 'TargetGroupFullName')
+                )
+            ],
+            AlarmActions=[Ref(self.notification_sns_arn)],
+            OKActions=[Ref(self.notification_sns_arn)],
+            AlarmDescription='Triggers if target returns 5xx error code',
+            Namespace='AWS/ApplicationELB',
+            Period=60,
+            ComparisonOperator='GreaterThanOrEqualToThreshold',
+            Statistic='Sum',
+            Threshold=alb_config.get('target_5xx_error_threshold'),
+            MetricName='HTTPCode_Target_5XX_Count',
+            TreatMissingData='notBreaching'
+        )
+        self.template.add_resource(high_5xx_alarm)
 
     def _add_alb_alarms(self, service_name, alb, alb_config):
         elb_5XX_error_codes_to_monitor = ["502", "503", "504"]

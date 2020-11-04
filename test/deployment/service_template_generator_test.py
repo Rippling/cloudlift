@@ -209,6 +209,7 @@ class TestServiceTemplateGenerator(TestCase):
                         "internal": False,
                         "alb": {
                             "create_new": True,
+                            'target_5xx_error_threshold': 7
                         },
                         "container_port": Decimal(7003),
                         "restrict_access_to": ["0.0.0.0/0"],
@@ -328,7 +329,9 @@ class TestServiceTemplateGenerator(TestCase):
                         "internal": False,
                         "alb": {
                             "create_new": False,
-                            "host": "abc.xyz.com"
+                            "host": "abc.xyz.com",
+                            'load_balancer_full_name': "test/testloadbalancer/random_id",
+                            'target_5xx_error_threshold': 5
                         },
                         "container_port": Decimal(7003),
                         "restrict_access_to": ["0.0.0.0/0"],
@@ -356,6 +359,8 @@ class TestServiceTemplateGenerator(TestCase):
                             "listener_arn": "custom_listener_arn",
                             "path": "/api/*",
                             "priority": 100,
+                            'load_balancer_full_name': "test/testloadbalancer/random_id",
+                            'target_5xx_error_threshold': 5
                         },
                         "container_port": Decimal(7003),
                         "restrict_access_to": ["0.0.0.0/0"],

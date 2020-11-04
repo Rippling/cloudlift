@@ -156,10 +156,16 @@ class ServiceConfiguration(DynamodbConfig):
                                 },
                                 "elb_504_error_threshold": {
                                     "type": "number"
+                                },
+                                "target_5xx_error_threshold": {
+                                    "type": "number"
+                                },
+                                "load_balancer_full_name": {
+                                    "type": "number"
                                 }
                             },
                             "required": [
-                                "create_new"
+                                "create_new", "target_5xx_error_threshold"
                             ]
                         },
                         "restrict_access_to": {
