@@ -983,7 +983,7 @@ service is down',
             Period=60,
             ComparisonOperator='GreaterThanOrEqualToThreshold',
             Statistic='Sum',
-            Threshold=alb_config.get('target_5xx_error_threshold'),
+            Threshold=int(alb_config.get('target_5xx_error_threshold')),
             MetricName='HTTPCode_Target_5XX_Count',
             TreatMissingData='notBreaching'
         )
