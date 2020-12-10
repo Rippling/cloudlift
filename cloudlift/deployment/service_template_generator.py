@@ -259,12 +259,6 @@ service is down',
         elif 'tcp_interface' in config:
             if launch_type == self.LAUNCH_TYPE_FARGATE:
                 raise NotImplementedError('tcp interface not yet implemented in fargate type, please use ec2 type')
-            container_definition_arguments['PortMappings'] = [
-                PortMapping(ContainerPort=int(config['tcp_interface']['container_port']),
-                            HostPort=int(config['tcp_interface']['container_port']), Protocol='tcp'),
-                PortMapping(ContainerPort=int(config['tcp_interface']['health_check_port']),
-                            HostPort=int(config['tcp_interface']['health_check_port']), Protocol='tcp')
-            ]
 
         if config['command'] is not None:
             container_definition_arguments['Command'] = [config['command']]
@@ -331,7 +325,7 @@ service is down',
                     'Cpu': str(config['fargate']['cpu']),
                     'Memory': str(config['fargate']['memory'])
                 }
-        elif ('udp_interface' in config) or ('tcp_interface' in config):
+        elif ('udp_interface' in config):
             launch_type_td['NetworkMode'] = 'awsvpc'
 
         placement_constraints = [
@@ -499,14 +493,7 @@ service is down',
 
             self.template.add_resource(svc)
         elif 'tcp_interface' in config:
-            launch_type_svc = {}
-            SecurityGroup(config['tcp_interface']['ec2_sg'])
-            launch_type_svc['NetworkConfiguration'] = NetworkConfiguration(
-                AwsvpcConfiguration=AwsvpcConfiguration(
-                    Subnets=[Ref(self.private_subnet1), Ref(self.private_subnet2)],
-                    SecurityGroups=[config['tcp_interface']['ec2_sg']])
-            )
-            launch_type_svc['PlacementStrategies'] = self.PLACEMENT_STRATEGIES
+            launch_type_svc = {'': self.PLACEMENT_STRATEGIES}
             svc = Service(
                 service_name,
                 LoadBalancers=[LoadBalancer(ContainerName=cd.Name, TargetGroupArn=config['tcp_interface']['target_group_arn'],
@@ -515,7 +502,8 @@ service is down',
                 TaskDefinition=Ref(td),
                 DesiredCount=desired_count,
                 LaunchType=launch_type,
-                **launch_type_svc,
+                PlacementStrategies=self.PLACEMENT_STRATEGIES,
+                Role=self.ecs_service_role
             )
             self.template.add_output(
                 Output(
