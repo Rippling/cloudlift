@@ -259,6 +259,9 @@ service is down',
         elif 'tcp_interface' in config:
             if launch_type == self.LAUNCH_TYPE_FARGATE:
                 raise NotImplementedError('tcp interface not yet implemented in fargate type, please use ec2 type')
+            container_definition_arguments['PortMappings'] = [
+                PortMapping(ContainerPort=int(config['tcp_interface']['container_port']), Protocol='tcp')
+            ]
 
         if config['command'] is not None:
             container_definition_arguments['Command'] = [config['command']]
@@ -503,7 +506,7 @@ service is down',
                 DesiredCount=desired_count,
                 LaunchType=launch_type,
                 PlacementStrategies=self.PLACEMENT_STRATEGIES,
-                Role=self.ecs_service_role
+                Role=Ref(self.ecs_service_role)
             )
             self.template.add_output(
                 Output(
