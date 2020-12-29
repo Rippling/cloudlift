@@ -1,6 +1,6 @@
 from datetime import datetime
 from time import sleep, time
-
+import os
 import boto3
 from cloudlift.config import ParameterStore
 from cloudlift.config.logging import log_bold, log_err, log_intent, log_with_color
@@ -24,12 +24,13 @@ def revert_deployment(client, cluster_name, ecs_service_name, color, timeout_sec
     deploy_task_definition(client, previous_task_defn, cluster_name, ecs_service_name, color, timeout_seconds, 'Revert')
 
 
-def deploy_new_version(client, cluster_name, ecs_service_name, deployment_identifier,
-                       deploy_version_tag, service_name, sample_env_file_path,
+def deploy_new_version(client, cluster_name, ecs_service_name, repo_name, sample_env_folder_path, deployment_identifier,
+                       deploy_version_tag, service_name,
                        timeout_seconds, env_name, secrets_name, color='white', complete_image_uri=None):
     task_definition = create_new_task_definition(color, complete_image_uri, deploy_version_tag, ecs_service_name,
-                                                 env_name, sample_env_file_path, secrets_name, service_name, client,
-                                                 cluster_name, deployment_identifier)
+                                                 env_name, secrets_name, service_name, repo_name,
+                                                 sample_env_folder_path,
+                                                 client, cluster_name, deployment_identifier)
     deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_seconds, 'Deploy')
 
 
@@ -49,19 +50,19 @@ def deploy_task_definition(client, task_definition, cluster_name, ecs_service_na
 
 
 def create_new_task_definition(color, complete_image_uri, deploy_version_tag, ecs_service_name, env_name,
-                               sample_env_file_path, secrets_name, service_name, client, cluster_name,
+                               secrets_name, service_name, repo_name, sample_env_folder_path, client, cluster_name,
                                deployment_identifier):
     deployment = DeployAction(client, cluster_name, ecs_service_name)
     task_definition = deployment.get_current_task_definition(deployment.service)
     essential_container = find_essential_container(task_definition[u'containerDefinitions'])
-    container_configurations = build_config(env_name, service_name, sample_env_file_path, essential_container,
-                                            secrets_name)
+    container_configurations = build_config(repo_name, env_name, sample_env_folder_path)
+    print('container configuration is', container_configurations)
     if complete_image_uri is not None:
         task_definition.set_images(essential_container, deploy_version_tag, **{essential_container: complete_image_uri})
     else:
         task_definition.set_images(essential_container, deploy_version_tag)
     for container in task_definition.containers:
-        env_config = container_configurations.get(container['name'], {})
+        env_config = container_configurations
         task_definition.apply_container_environment_and_secrets(container, env_config)
     print_task_diff(ecs_service_name, task_definition.diff, color)
     new_task_definition = deployment.update_task_definition(task_definition, deployment_identifier)
@@ -75,16 +76,62 @@ def deploy_and_wait(deployment, new_task_definition, color, timeout_seconds):
     return wait_for_finish(deployment, existing_events, color, deploy_end_time)
 
 
-def build_config(env_name, service_name, sample_env_file_path, essential_container_name, secrets_name=None):
-    env_config_secrets_mgr = secrets_manager.get_config(secrets_name, env_name) if secrets_name else {}
-    env_config_param_store = _get_parameter_store_config(service_name, env_name)
-    keys_not_in_secret_mgr = set(env_config_param_store) - set(env_config_secrets_mgr)
-    env_config = {k: env_config_param_store[k] for k in keys_not_in_secret_mgr}
-    sample_config_keys = set(read_config(open(sample_env_file_path).read()))
-    _validate_config_availability(sample_config_keys, set(env_config_param_store).union(set(env_config_secrets_mgr)))
-    secrets = {k: env_config_secrets_mgr[k] for k in set(env_config_secrets_mgr).intersection(sample_config_keys)}
-    env = {k: env_config[k] for k in set(env_config).intersection(sample_config_keys)}
-    return {essential_container_name: {"secrets": secrets, "environment": env}}
+def get_env_sample_file_name(namespace):
+    return 'env.{}.sample'.format(namespace) if namespace != '' else 'env.sample'
+
+
+def get_env_sample_file_contents(env_samples_directory, namespace):
+    env_sample_file_name = get_env_sample_file_name(namespace)
+    path = os.path.join(env_samples_directory, env_sample_file_name)
+    return open(env_sample_file_name).read()
+
+
+def get_exec_namespaces(directory_path):
+    files_in_directory = list(os.walk(directory_path))[0][2]
+    exec_namespaces = []
+    for file_name in files_in_directory:
+        if file_name.startswith('env.') and file_name.endswith('.sample'):
+            exec_namespaces.append(file_name.split('env.')[1].split('sample')[0].rstrip('.'))
+    return exec_namespaces
+
+
+def find_duplicate_keys(directory_path, namespaces):
+    duplicates = []
+    for i in range(0, len(namespaces)):
+        for j in range(i + 1, len(namespaces)):
+            source_keys = get_sample_keys(directory_path, namespaces[i])
+            destination_keys = get_sample_keys(directory_path, namespaces[j])
+            duplicate_keys = source_keys.intersection(destination_keys)
+            if len(duplicate_keys) != 0:
+                duplicates.append(
+                    (duplicate_keys, get_env_sample_file_name(namespaces[i]), get_env_sample_file_name(namespaces[j])))
+    return duplicates
+
+
+def get_sample_keys(directory_path, namespace):
+    return set(read_config(get_env_sample_file_contents(directory_path, namespace)))
+
+
+def get_secret_name(env_name, name_space, repo_name):
+    return f"{repo_name}-{name_space}-{env_name}" if name_space != '' else f"{repo_name}-{env_name}"
+
+
+def build_config(repo_name, env_name, sample_env_folder_path):
+    # temporarily we are picking all available namespaces
+    # in future we will load only namespace specific secrets
+    namespaces = get_exec_namespaces(sample_env_folder_path)
+    duplicates = find_duplicate_keys(sample_env_folder_path, namespaces)
+    if len(duplicates) != 0:
+        raise UnrecoverableException('duplicate keys found in env sample files {} '.format(duplicates))
+    secrets = {}
+    for name_space in namespaces:
+        sample_config_keys = get_sample_keys(sample_env_folder_path, name_space)
+        secret_name = get_secret_name(env_name, name_space, repo_name)
+        print(secret_name)
+        secrets_manager_keys = set(secrets_manager.get_config(secret_name, env_name)['keys'])
+        _validate_config_availability(sample_config_keys, secrets_manager_keys)
+        secrets['INJECTED_SECRETS_' + name_space] = secrets_manager.get_config(secret_name, env_name)['ARN']
+    return secrets
 
 
 def _get_parameter_store_config(service_name, env_name):

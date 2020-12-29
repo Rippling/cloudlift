@@ -27,6 +27,15 @@ def _require_environment(func):
 
     return wrapper
 
+def _require_repo_name(func):
+    @click.option('--repo_name', help='give the name of repo')
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if kwargs['repo_name'] is None:
+            kwargs['repo_name'] = deduce_name(None)
+        return func(*args, **kwargs)
+
+    return wrapper
 
 def _require_name(func):
     @click.option('--name', help='Your service name, give the name of \
@@ -121,8 +130,11 @@ def edit_config(name, environment, sidecar):
 @cli.command()
 @_require_environment
 @_require_name
+@_require_repo_name
 @click.option('--deployment_identifier', type=str, required=True,
               help='Unique identifier for deployment which can be used for reverting')
+@click.option('--sample_env_folder_path', type=str, default='.',
+              help='relative path to where sample env files are located')
 @click.option('--timeout_seconds', default=600, help='The deployment timeout')
 @click.option('--version', default=None,
               help='local image version tag')
@@ -130,22 +142,23 @@ def edit_config(name, environment, sidecar):
                                                                   "as --build-args. Supports multiple.\
                                                                    Please leave space between name and value")
 @click.option('--dockerfile', default=None, help='The Dockerfile path used to build')
-@click.option('--env_sample_file', default='env.sample', help='env sample file path')
 @click.option('--ssh', default=None, help='SSH agent socket or keys to expose to the docker build')
 @click.option('--cache-from', multiple=True, help='Images to consider as cache sources')
-def deploy_service(name, environment, timeout_seconds, version, build_arg, dockerfile, env_sample_file, ssh,
+def deploy_service(repo_name, name, environment, timeout_seconds, version, build_arg, dockerfile, ssh,
                    cache_from,
-                   deployment_identifier):
+                   deployment_identifier, sample_env_folder_path):
     ServiceUpdater(
         name,
         environment=environment,
-        env_sample_file=env_sample_file,
         timeout_seconds=timeout_seconds,
         version=version,
         build_args=dict(build_arg),
         dockerfile=dockerfile,
         ssh=ssh,
-        cache_from=list(cache_from), deployment_identifier=deployment_identifier
+        cache_from=list(cache_from),
+        deployment_identifier=deployment_identifier,
+        repo_name=repo_name,
+        sample_env_folder_path=sample_env_folder_path,
     ).run()
 
 
@@ -169,11 +182,10 @@ def revert_service(name, environment, timeout_seconds, deployment_identifier):
                                                                   "as --build-args. Supports multiple.\
                                                                    Please leave space between name and value")
 @click.option('--dockerfile', default=None, help='The Dockerfile path used to build')
-@click.option('--env_sample_file', default='env.sample', help='env sample file path')
 @click.option('--ssh', default=None, help='SSH agent socket or keys to expose to the docker build')
 @click.option('--cache-from', multiple=True, help='Images to consider as cache sources')
 def upload_to_ecr(name, environment, additional_tags, build_arg, dockerfile, env_sample_file, ssh, cache_from):
-    ServiceUpdater(name, environment=environment, env_sample_file=env_sample_file,
+    ServiceUpdater(name, environment=environment,
                    build_args=dict(build_arg), dockerfile=dockerfile,
                    ssh=ssh, cache_from=list(cache_from)).upload_to_ecr(additional_tags)
 

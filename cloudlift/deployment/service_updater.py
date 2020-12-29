@@ -19,18 +19,20 @@ DEPLOYMENT_CONCURRENCY = int(os.environ.get('CLOUDLIFT_DEPLOYMENT_CONCURRENCY', 
 
 
 class ServiceUpdater(object):
-    def __init__(self, name, environment='', env_sample_file='', timeout_seconds=None, version=None,
+    def __init__(self, name, sample_env_folder_path='.', repo_name='', environment='', timeout_seconds=None,
+                 version=None,
                  build_args=None, dockerfile=None, ssh=None, cache_from=None,
                  deployment_identifier=None, working_dir='.'):
         self.name = name
+        self.repo_name = repo_name
         self.environment = environment
         self.deployment_identifier = deployment_identifier
-        self.env_sample_file = env_sample_file
         self.timeout_seconds = timeout_seconds
         self.version = version
         self.ecr_client = boto3.session.Session(region_name=self.region).client('ecr')
         self.cluster_name = get_cluster_name(environment)
         self.service_info_fetcher = ServiceInformationFetcher(self.name, self.environment)
+        self.sample_env_folder_path = sample_env_folder_path
         if not self.service_info_fetcher.stack_found:
             raise UnrecoverableException(
                 "error finding stack in ServiceUpdater: {}-{}".format(self.name, self.environment))
@@ -49,8 +51,6 @@ class ServiceUpdater(object):
 
     def run(self):
         log_warning("Deploying to {self.region}".format(**locals()))
-        if not os.path.exists(self.env_sample_file):
-            raise UnrecoverableException('env.sample not found. Exiting.')
         log_intent("name: " + self.name + " | environment: " +
                    self.environment + " | version: " + str(self.version) +
                    " | deployment_identifier: " + self.deployment_identifier)
@@ -63,10 +63,12 @@ class ServiceUpdater(object):
         target = deployer.deploy_new_version
         kwargs = dict(client=ecs_client, cluster_name=self.cluster_name,
                       deploy_version_tag=self.version,
-                      service_name=self.name, sample_env_file_path=self.env_sample_file,
+                      service_name=self.name,
                       timeout_seconds=self.timeout_seconds, env_name=self.environment,
                       complete_image_uri=image_url,
-                      deployment_identifier=self.deployment_identifier)
+                      deployment_identifier=self.deployment_identifier,
+                      repo_name=self.repo_name,
+                      sample_env_folder_path=self.sample_env_folder_path)
         self.run_job_for_all_services("Deploy", target, kwargs)
 
     def revert(self):

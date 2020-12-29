@@ -317,12 +317,12 @@ class EcsTaskDefinition(dict):
                 container[u'command'] = [new_command]
 
     def apply_container_environment_and_secrets(self, container, new_environment_and_secrets):
-        new_environment = new_environment_and_secrets.get('environment', {})
+        new_environment = {}
         old_environment = {env['name']: env['value'] for env in container.get('environment', {})}
         container[u'environment'] = [{"name": e, "value": new_environment[e]} for e in new_environment]
         self._diff.append(EcsTaskDefinitionDiff(container['name'], 'environment', new_environment, old_environment))
 
-        new_secrets = new_environment_and_secrets.get('secrets', {})
+        new_secrets = new_environment_and_secrets
         old_secrets = {env['name']: env['valueFrom'] for env in container.get('secrets', {})}
         container[u'secrets'] = [{"name": s, "valueFrom": new_secrets[s]} for s in new_secrets]
         self._diff.append(EcsTaskDefinitionDiff(container['name'], 'secrets', new_secrets, old_secrets))

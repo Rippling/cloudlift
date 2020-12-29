@@ -171,7 +171,7 @@ def validate_service(cfn_client, stack_name, expected_string):
 
 def deploy_service(deployment_identifier):
     os.chdir(f'{TEST_DIR}/dummy')
-    ServiceUpdater(service_name, environment_name, "env.sample", timeout_seconds=600,
+    ServiceUpdater(service_name, environment_name, timeout_seconds=600,
                    deployment_identifier=deployment_identifier).run()
 
 
