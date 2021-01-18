@@ -351,7 +351,7 @@ indicating instance is down',
             Period=60,
             ComparisonOperator='GreaterThanThreshold',
             Statistic='Average',
-            Threshold='60',
+            Threshold='75',
             MetricName='CPUUtilization'
         )
         self.template.add_resource(ec2_hosts_high_cpu_alarm)
@@ -370,7 +370,7 @@ indicating instance is down',
             Period=300,
             ComparisonOperator='GreaterThanThreshold',
             Statistic='Average',
-            Threshold='60',
+            Threshold='70',
             MetricName='CPUUtilization'
         )
         self.template.add_resource(cluster_high_cpu_alarm)
@@ -389,13 +389,13 @@ indicating instance is down',
             Period=300,
             ComparisonOperator='GreaterThanThreshold',
             Statistic='Average',
-            Threshold='60',
+            Threshold='90',
             MetricName='MemoryUtilization'
         )
         self.template.add_resource(cluster_high_memory_alarm)
         self.cluster_high_memory_reservation_autoscale_alarm = Alarm(
             'ClusterHighMemoryReservationAlarm',
-            EvaluationPeriods=1,
+            EvaluationPeriods=3,
             Dimensions=[
                 MetricDimension(Name='ClusterName', Value=Ref(cluster))
             ],
@@ -408,7 +408,7 @@ for cluster.',
             Period=300,
             ComparisonOperator='GreaterThanThreshold',
             Statistic='Average',
-            Threshold='75',
+            Threshold='85',
             MetricName='MemoryReservation'
         )
         self.template.add_resource(

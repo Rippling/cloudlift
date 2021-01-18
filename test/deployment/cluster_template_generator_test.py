@@ -129,14 +129,14 @@ class TestClusterTemplateGenerator(TestCase):
 
     def test_create_cluster_when_vpc_parameterized(self):
         generated_template = self.helper_mock_create_cluster(environment_config_when_vpc_parameterized)
-        template_file_path = os.path.join(os.path.dirname(__file__),
-                                          '../templates/expected_cluster_template_when_vpc_parameterized.yml')
-        with(open(template_file_path)) as expected_template_file:
-            assert generated_template == ''.join(expected_template_file.readlines())
+        assert_template('../templates/expected_cluster_template_when_vpc_parameterized.yml', generated_template)
 
     def test_create_cluster_when_vpc_created(self):
         generated_template = self.helper_mock_create_cluster(environment_config_when_vpc_created)
-        template_file_path = os.path.join(os.path.dirname(__file__),
-                                          '../templates/expected_cluster_template_when_vpc_created.yml')
-        with(open(template_file_path)) as expected_template_file:
-            assert generated_template == ''.join(expected_template_file.readlines())
+        assert_template('../templates/expected_cluster_template_when_vpc_created.yml', generated_template)
+
+
+def assert_template(source_template_file, generated_template):
+    template_file_path = os.path.join(os.path.dirname(__file__), source_template_file)
+    with(open(template_file_path)) as expected_template_file:
+        assert generated_template == ''.join(expected_template_file.readlines())

@@ -394,13 +394,15 @@ Resources:
           Value: !Ref 'AutoScalingGroup'
       AlarmActions:
         - !Ref 'NotificationSnsArn'
+      OKActions:
+        - !Ref 'NotificationSnsArn'
       AlarmDescription: Alarm if CPU too high or metric disappears indicating instance
         is down
       Namespace: AWS/EC2
       Period: 60
       ComparisonOperator: GreaterThanThreshold
       Statistic: Average
-      Threshold: '60'
+      Threshold: '75'
       MetricName: CPUUtilization
     Type: AWS::CloudWatch::Alarm
   ClusterHighCPUAlarm:
@@ -411,12 +413,14 @@ Resources:
           Value: !Ref 'Cluster'
       AlarmActions:
         - !Ref 'NotificationSnsArn'
+      OKActions:
+        - !Ref 'NotificationSnsArn'
       AlarmDescription: Alarm if CPU is too high for cluster.
       Namespace: AWS/ECS
       Period: 300
       ComparisonOperator: GreaterThanThreshold
       Statistic: Average
-      Threshold: '60'
+      Threshold: '70'
       MetricName: CPUUtilization
     Type: AWS::CloudWatch::Alarm
   ClusterHighMemoryAlarm:
@@ -427,17 +431,19 @@ Resources:
           Value: !Ref 'Cluster'
       AlarmActions:
         - !Ref 'NotificationSnsArn'
+      OKActions:
+        - !Ref 'NotificationSnsArn'
       AlarmDescription: Alarm if memory is too high for cluster.
       Namespace: AWS/ECS
       Period: 300
       ComparisonOperator: GreaterThanThreshold
       Statistic: Average
-      Threshold: '60'
+      Threshold: '90'
       MetricName: MemoryUtilization
     Type: AWS::CloudWatch::Alarm
   ClusterHighMemoryReservationAlarm:
     Properties:
-      EvaluationPeriods: 1
+      EvaluationPeriods: 3
       Dimensions:
         - Name: ClusterName
           Value: !Ref 'Cluster'
@@ -448,7 +454,7 @@ Resources:
       Period: 300
       ComparisonOperator: GreaterThanThreshold
       Statistic: Average
-      Threshold: '75'
+      Threshold: '85'
       MetricName: MemoryReservation
     Type: AWS::CloudWatch::Alarm
   ClusterHighMemoryReservationUserNotifcationAlarm:
