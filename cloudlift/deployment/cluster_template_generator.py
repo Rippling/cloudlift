@@ -344,6 +344,7 @@ class ClusterTemplateGenerator(TemplateGenerator):
                                 Value=Ref(self.auto_scaling_group))
             ],
             AlarmActions=[Ref(self.notification_sns_arn)],
+            OKActions=[ Ref(self.notification_sns_arn)],
             AlarmDescription='Alarm if CPU too high or metric disappears \
 indicating instance is down',
             Namespace='AWS/EC2',
@@ -363,6 +364,7 @@ indicating instance is down',
             AlarmActions=[
                 Ref(self.notification_sns_arn)
             ],
+            OKActions=[Ref(self.notification_sns_arn)],
             AlarmDescription='Alarm if CPU is too high for cluster.',
             Namespace='AWS/ECS',
             Period=300,
@@ -381,6 +383,7 @@ indicating instance is down',
             AlarmActions=[
                 Ref(self.notification_sns_arn)
             ],
+            OKActions=[Ref(self.notification_sns_arn)],
             AlarmDescription='Alarm if memory is too high for cluster.',
             Namespace='AWS/ECS',
             Period=300,
