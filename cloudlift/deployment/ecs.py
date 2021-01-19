@@ -306,20 +306,6 @@ class EcsTaskDefinition(dict):
                 self._diff.append(diff)
                 container[u'image'] = new_image
 
-    def set_commands(self, **commands):
-        self.validate_container_options(**commands)
-        for container in self.containers:
-            if container[u'name'] in commands:
-                new_command = commands[container[u'name']]
-                diff = EcsTaskDefinitionDiff(
-                    container=container[u'name'],
-                    field=u'command',
-                    value=new_command,
-                    old_value=container.get(u'command')
-                )
-                self._diff.append(diff)
-                container[u'command'] = [new_command]
-
     def apply_container_environment_and_secrets(self, container, new_environment_and_secrets):
         new_environment = new_environment_and_secrets.get('environment', {})
         old_environment = {env['name']: env['value'] for env in container.get('environment', {})}
@@ -337,17 +323,6 @@ class EcsTaskDefinition(dict):
                 raise UnknownContainerError(
                     u'Unknown container: %s' % container_name
                 )
-
-    def set_role_arn(self, role_arn):
-        if role_arn:
-            diff = EcsTaskDefinitionDiff(
-                container=None,
-                field=u'role_arn',
-                value=role_arn,
-                old_value=self[u'taskRoleArn']
-            )
-            self[u'taskRoleArn'] = role_arn
-            self._diff.append(diff)
 
 
 class EcsTaskDefinitionDiff(object):
