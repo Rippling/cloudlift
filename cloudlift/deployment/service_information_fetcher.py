@@ -29,10 +29,11 @@ class ServiceInformationFetcher(object):
 
             stack_outputs = {output['OutputKey']: output['OutputValue'] for output in stack['Outputs']}
 
-            # For backwards compatibility during deployment, using default as {service-name}-repo
-            self.ecr_repo_name = stack_outputs.get('ECRRepoName', spinalcase(self.name + '-repo'))
-            self.ecr_assume_role_arn = stack_outputs.get('ECRAssumeRoleARN', None)
-            self.ecr_account_id = stack_outputs.get('ECRAccountID', None)
+            ecr_repo_config = service_configuration.get('ecr_repo')
+
+            self.ecr_repo_name = ecr_repo_config.get('name', spinalcase(self.name + '-repo'))
+            self.ecr_assume_role_arn = ecr_repo_config.get('assume_role_arn', None)
+            self.ecr_account_id = ecr_repo_config.get('account_id', None)
 
             for service_name, service_config in service_configuration.get('services', {}).items():
                 service_metadata = dict()

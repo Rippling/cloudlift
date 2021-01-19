@@ -38,16 +38,22 @@ class TestServiceInformationFetcher(unittest.TestCase):
     @patch('cloudlift.deployment.service_information_fetcher.ServiceConfiguration')
     @patch('cloudlift.deployment.service_information_fetcher.get_client_for')
     def test_fetch_ecr_info(self, mock_get_client_for, mock_service_configuration):
-        mock_service_configuration.return_value.get_config.return_value = _service_configuration()
+        mock_service_configuration.return_value.get_config.return_value = {
+            'ecr_repo': {'name': 'dummy-sen-repo-fork', 'account_id': '54321', 'assume_role_arn': 'arn2'},
+            'services': {
+                'ServiceOne': {'secrets_name': 'dummy-test'},
+                'ServiceTwo': {'ecs_service_name': 'generated-ecs-service', 'secrets_name': 'dummy-test2'},
+            }
+        }
         mock_cfn_client = MagicMock()
         mock_get_client_for.return_value = mock_cfn_client
         mock_cfn_client.describe_stacks.return_value = _describe_stacks_output_with_ecr_repo_config()
 
         sif = ServiceInformationFetcher(service, env)
 
-        self.assertEqual('dummy-sen-repo', sif.ecr_repo_name)
-        self.assertEqual('test-assume-role-arn', sif.ecr_assume_role_arn)
-        self.assertEqual('12345', sif.ecr_account_id)
+        self.assertEqual('dummy-sen-repo-fork', sif.ecr_repo_name)
+        self.assertEqual('arn2', sif.ecr_assume_role_arn)
+        self.assertEqual('54321', sif.ecr_account_id)
 
     @patch('cloudlift.deployment.service_information_fetcher.ServiceConfiguration')
     @patch('builtins.print')
