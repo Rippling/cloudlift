@@ -6,6 +6,10 @@ class TaskDefinitionBuilderTest(TestCase):
     def test_build_dict_for_http_api(self):
         configuration = {
             'command': './start_script.sh',
+            "container_health_check": {
+                "command": "./check-health.sh",
+                "start_period": 10
+            },
             'http_interface': {'container_port': 9090},
             'memory_reservation': 100,
             'stop_timeout': 70,
@@ -27,6 +31,10 @@ class TaskDefinitionBuilderTest(TestCase):
                 'cpu': 0,
                 'environment': [{'name': 'PORT', 'value': '80'}],
                 'essential': 'true',
+                'healthCheck': {
+                    'command': ['CMD-SHELL', './check-health.sh'],
+                    'startPeriod': 10,
+                },
                 'image': 'nginx:default',
                 'logConfiguration': {
                     'logDriver': 'awslogs',
@@ -55,6 +63,118 @@ class TaskDefinitionBuilderTest(TestCase):
                     "secrets": {"CLOUDLIFT_INJECTED_SECRETS": 'arn_injected_secrets'},
                     "environment": {"PORT": "80"}
                 },
+            },
+            ecr_image_uri="nginx:default"
+        )
+
+        self.assertEqual(expected, actual)
+
+    def test_build_dict_with_log_group(self):
+        configuration = {
+            'command': './start_script.sh',
+            'container_health_check': {
+                'command': './check-health.sh',
+                'start_period': 10
+            },
+            'log_group': 'custom-log-group',
+            'memory_reservation': 100,
+            'task_execution_role_arn': 'arn1',
+            'task_role_arn': 'arn2',
+        }
+        builder = TaskDefinitionBuilder(
+            environment="test",
+            service_name="dummy",
+            configuration=configuration,
+            region='region1',
+        )
+
+        expected = {
+            'containerDefinitions': [{
+                'command': ['./start_script.sh'],
+                'cpu': 0,
+                'environment': [],
+                'essential': 'true',
+                'healthCheck': {
+                    'command': ['CMD-SHELL', './check-health.sh'],
+                    'startPeriod': 10,
+                },
+                'image': 'nginx:default',
+                'logConfiguration': {
+                    'logDriver': 'awslogs',
+                    'options': {
+                        'awslogs-group': 'custom-log-group',
+                        'awslogs-region': 'region1',
+                        'awslogs-stream-prefix': 'dummy',
+                    },
+                },
+                'memoryReservation': 100,
+                'name': 'dummyContainer',
+                'secrets': [],
+            }],
+            'executionRoleArn': 'arn1',
+            'family': 'testdummyFamily',
+            'taskRoleArn': 'arn2',
+        }
+
+        actual = builder.build_dict(
+            container_configurations={
+                'dummyContainer': {},
+            },
+            ecr_image_uri="nginx:default"
+        )
+
+        self.assertEqual(expected, actual)
+
+    def test_build_dict_with_udp_interface(self):
+        configuration = {
+            'command': './start_script.sh',
+            'container_health_check': {
+                'command': './check-health.sh',
+                'start_period': 10
+            },
+            'log_group': 'custom-log-group',
+            'memory_reservation': 100,
+            'task_execution_role_arn': 'arn1',
+            'task_role_arn': 'arn2',
+        }
+        builder = TaskDefinitionBuilder(
+            environment="test",
+            service_name="dummy",
+            configuration=configuration,
+            region='region1',
+        )
+
+        expected = {
+            'containerDefinitions': [{
+                'command': ['./start_script.sh'],
+                'cpu': 0,
+                'environment': [],
+                'essential': 'true',
+                'healthCheck': {
+                    'command': ['CMD-SHELL', './check-health.sh'],
+                    'startPeriod': 10,
+                },
+                'image': 'nginx:default',
+                'logConfiguration': {
+                    'logDriver': 'awslogs',
+                    'options': {
+                        'awslogs-group': 'custom-log-group',
+                        'awslogs-region': 'region1',
+                        'awslogs-stream-prefix': 'dummy',
+                    },
+                },
+                'memoryReservation': 100,
+                'name': 'dummyContainer',
+                'secrets': [],
+            }],
+            'executionRoleArn': 'arn1',
+            'family': 'testdummyFamily',
+            'taskRoleArn': 'arn2',
+        }
+
+        actual = builder.build_dict(
+            container_configurations={
+                'dummyContainer': {},
             },
             ecr_image_uri="nginx:default"
         )
