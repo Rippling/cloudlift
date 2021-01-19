@@ -11,8 +11,16 @@ env = "test"
 
 class TestServiceInformationFetcher(unittest.TestCase):
 
+    @patch('cloudlift.deployment.service_information_fetcher.ServiceConfiguration')
     @patch('cloudlift.deployment.service_information_fetcher.get_client_for')
-    def test_fetch_service_cfn_info(self, mock_get_client_for):
+    def test_fetch_service_cfn_info(self, mock_get_client_for, mock_service_configuration):
+        mock_service_configuration.return_value.get_config.return_value = {
+            'ecr_repo': {'name': 'dummy-repo'},
+            'services': {
+                'ServiceOne': {'secrets_name': 'dummy-test'},
+                'ServiceTwo': {'secrets_name': 'dummy-test'},
+            }
+        }
         mock_cfn_client = MagicMock()
         mock_get_client_for.return_value = mock_cfn_client
         mock_cfn_client.describe_stacks.return_value = _describe_stacks_output()
@@ -27,8 +35,10 @@ class TestServiceInformationFetcher(unittest.TestCase):
         self.assertDictEqual(expected_service_info, sif.service_info)
         mock_cfn_client.describe_stacks.assert_called_once_with(StackName='dummy-test')
 
+    @patch('cloudlift.deployment.service_information_fetcher.ServiceConfiguration')
     @patch('cloudlift.deployment.service_information_fetcher.get_client_for')
-    def test_fetch_ecr_info(self, mock_get_client_for):
+    def test_fetch_ecr_info(self, mock_get_client_for, mock_service_configuration):
+        mock_service_configuration.return_value.get_config.return_value = _service_configuration()
         mock_cfn_client = MagicMock()
         mock_get_client_for.return_value = mock_cfn_client
         mock_cfn_client.describe_stacks.return_value = _describe_stacks_output_with_ecr_repo_config()
@@ -39,9 +49,11 @@ class TestServiceInformationFetcher(unittest.TestCase):
         self.assertEqual('test-assume-role-arn', sif.ecr_assume_role_arn)
         self.assertEqual('12345', sif.ecr_account_id)
 
+    @patch('cloudlift.deployment.service_information_fetcher.ServiceConfiguration')
     @patch('builtins.print')
     @patch('cloudlift.deployment.service_information_fetcher.get_client_for')
-    def test_get_version(self, mock_get_client_for, mock_print):
+    def test_get_version(self, mock_get_client_for, mock_print, mock_service_configuration):
+        mock_service_configuration.return_value.get_config.return_value = _service_configuration()
         mock_client = MagicMock()
         mock_get_client_for.return_value = mock_client
         mock_client.describe_stacks.return_value = _describe_stacks_output_with_ecr_repo_config()
@@ -57,9 +69,11 @@ class TestServiceInformationFetcher(unittest.TestCase):
 
         mock_print.assert_called_with('v1-12345')
 
+    @patch('cloudlift.deployment.service_information_fetcher.ServiceConfiguration')
     @patch('builtins.print')
     @patch('cloudlift.deployment.service_information_fetcher.get_client_for')
-    def test_get_version_with_image(self, mock_get_client_for, mock_print):
+    def test_get_version_with_image(self, mock_get_client_for, mock_print, mock_service_configuration):
+        mock_service_configuration.return_value.get_config.return_value = _service_configuration()
         mock_client = MagicMock()
         mock_get_client_for.return_value = mock_client
         mock_client.describe_stacks.return_value = _describe_stacks_output_with_ecr_repo_config()
@@ -75,9 +89,11 @@ class TestServiceInformationFetcher(unittest.TestCase):
 
         mock_print.assert_called_with('repo:v1-12345')
 
+    @patch('cloudlift.deployment.service_information_fetcher.ServiceConfiguration')
     @patch('builtins.print')
     @patch('cloudlift.deployment.service_information_fetcher.get_client_for')
-    def test_get_version_with_git(self, mock_get_client_for, mock_print):
+    def test_get_version_with_git(self, mock_get_client_for, mock_print, mock_service_configuration):
+        mock_service_configuration.return_value.get_config.return_value = _service_configuration()
         mock_client = MagicMock()
         mock_get_client_for.return_value = mock_client
         mock_client.describe_stacks.return_value = _describe_stacks_output_with_ecr_repo_config()
@@ -92,6 +108,26 @@ class TestServiceInformationFetcher(unittest.TestCase):
         sif.get_version(print_git=True)
 
         mock_print.assert_called_with('fedbdf')
+
+    @patch('cloudlift.deployment.service_information_fetcher.ServiceConfiguration')
+    @patch('cloudlift.deployment.service_information_fetcher.get_client_for')
+    def test_initialization_from_service_configuration(self, mock_get_client_for, mock_service_configuration):
+        mock_get_client_for.return_value.describe_stacks.return_value = _describe_stacks_output_with_ecr_repo_config()
+        mock_service_configuration.return_value.get_config.return_value = _service_configuration()
+        sif = ServiceInformationFetcher(service, env)
+
+        expected_service_info = {
+            'ServiceOne': {
+                'ecs_service_name': 'dummy-sen-test-ServiceOne-X9NCSHOSMM5S',
+                'secrets_name': 'dummy-test',
+            },
+            'ServiceTwo': {
+                'ecs_service_name': 'generated-ecs-service',
+                'secrets_name': 'dummy-test2',
+            },
+        }
+
+        self.assertEqual(expected_service_info, sif.service_info)
 
 
 def _describe_stacks_output():
@@ -134,6 +170,16 @@ def _describe_stacks_output():
         ],
         'Tags': [], 'EnableTerminationProtection': False,
         'DriftInformation': {'StackDriftStatus': 'NOT_CHECKED'}}]}
+
+
+def _service_configuration():
+    return {
+        'ecr_repo': {'name': 'dummy-repo'},
+        'services': {
+            'ServiceOne': {'secrets_name': 'dummy-test'},
+            'ServiceTwo': {'ecs_service_name': 'generated-ecs-service', 'secrets_name': 'dummy-test2'},
+        }
+    }
 
 
 def _describe_stacks_output_with_ecr_repo_config():
