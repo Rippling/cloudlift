@@ -4,9 +4,8 @@ from time import sleep
 
 import boto3
 
-from cloudlift.config import get_account_id
-from cloudlift.config import get_cluster_name
-from cloudlift.config import (get_region_for_environment)
+from cloudlift.config import get_account_id, get_cluster_name,\
+    ServiceConfiguration, get_region_for_environment
 from cloudlift.config.logging import log_bold, log_intent, log_warning
 from cloudlift.deployment import deployer, ServiceInformationFetcher
 from cloudlift.deployment.ecs import EcsClient
@@ -30,7 +29,8 @@ class ServiceUpdater(object):
         self.version = version
         self.ecr_client = boto3.session.Session(region_name=self.region).client('ecr')
         self.cluster_name = get_cluster_name(environment)
-        self.service_info_fetcher = ServiceInformationFetcher(self.name, self.environment)
+        self.service_configuration = ServiceConfiguration(service_name=name, environment=environment).get_config()
+        self.service_info_fetcher = ServiceInformationFetcher(self.name, self.environment, self.service_configuration)
         if not self.service_info_fetcher.stack_found:
             raise UnrecoverableException(
                 "error finding stack in ServiceUpdater: {}-{}".format(self.name, self.environment))

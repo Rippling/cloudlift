@@ -11,17 +11,16 @@ from re import search
 
 
 class ServiceInformationFetcher(object):
-    def __init__(self, name, environment):
+    def __init__(self, name, environment, service_configuration):
         self.name = name
         self.environment = environment
         self.cluster_name = get_cluster_name(environment)
         self.cfn_client = get_client_for('cloudformation', self.environment)
-        self.service_configuration = ServiceConfiguration(self.name, self.environment)
+        self.service_configuration = service_configuration
         self.service_info = {}
         self.init_stack_info()
 
     def init_stack_info(self):
-        service_configuration = self.service_configuration.get_config()
         stack_name = get_service_stack_name(self.environment, self.name)
         try:
             stack = self.cfn_client.describe_stacks(StackName=stack_name)['Stacks'][0]
@@ -29,13 +28,13 @@ class ServiceInformationFetcher(object):
 
             stack_outputs = {output['OutputKey']: output['OutputValue'] for output in stack['Outputs']}
 
-            ecr_repo_config = service_configuration.get('ecr_repo')
+            ecr_repo_config = self.service_configuration.get('ecr_repo')
 
             self.ecr_repo_name = ecr_repo_config.get('name', spinalcase(self.name + '-repo'))
             self.ecr_assume_role_arn = ecr_repo_config.get('assume_role_arn', None)
             self.ecr_account_id = ecr_repo_config.get('account_id', None)
 
-            for service_name, service_config in service_configuration.get('services', {}).items():
+            for service_name, service_config in self.service_configuration.get('services', {}).items():
                 service_metadata = dict()
 
                 if "ecs_service_name" in service_config:
