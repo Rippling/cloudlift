@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from glob import glob
-from pprint import pprint
+from pprint import pformat
 from time import sleep, time
 
 import boto3
@@ -92,7 +92,11 @@ def create_new_task_definition(color, ecr_image_uri, ecs_service_name, env_name,
         fallback_task_role=task_definition.role_arn,
         fallback_task_execution_role=task_definition.execution_role_arn,
     ))
-    pprint(DeepDiff(task_definition, updated_task_definition))
+    diff = DeepDiff(task_definition, updated_task_definition)
+    diff.pop('dictionary_item_removed', 'no dictionary_item_removed')
+
+    if diff:
+        log_intent(pformat(diff))
     return deployment.update_task_definition(updated_task_definition, deployment_identifier)
 
 

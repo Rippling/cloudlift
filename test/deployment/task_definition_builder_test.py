@@ -30,7 +30,7 @@ class TaskDefinitionBuilderTest(TestCase):
                 'command': ['./start_script.sh'],
                 'cpu': 0,
                 'environment': [{'name': 'PORT', 'value': '80'}],
-                'essential': 'true',
+                'essential': True,
                 'healthCheck': {
                     'command': ['CMD-SHELL', './check-health.sh'],
                     'startPeriod': 10,
@@ -95,7 +95,7 @@ class TaskDefinitionBuilderTest(TestCase):
                 'command': ['./start_script.sh'],
                 'cpu': 0,
                 'environment': [],
-                'essential': 'true',
+                'essential': True,
                 'healthCheck': {
                     'command': ['CMD-SHELL', './check-health.sh'],
                     'startPeriod': 10,
@@ -159,7 +159,7 @@ class TaskDefinitionBuilderTest(TestCase):
                 'command': ['./start_script.sh'],
                 'cpu': 0,
                 'environment': [],
-                'essential': 'true',
+                'essential': True,
                 'healthCheck': {
                     'command': ['CMD-SHELL', './check-health.sh'],
                     'startPeriod': 10,

@@ -213,6 +213,11 @@ def camelize_keys(data):
             for each in v:
                 elements.append(camelize_keys(each))
             result[key] = elements
+        elif isinstance(v, str):
+            if v == 'true' or v == 'false':
+                result[key] = v == 'true'
+            else:
+                result[key] = v
         else:
             result[key] = v
     return result
