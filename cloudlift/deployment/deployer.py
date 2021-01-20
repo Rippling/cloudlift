@@ -11,6 +11,7 @@ from colorclass import Color
 from terminaltables import SingleTable
 from cloudlift.config import secrets_manager
 
+
 HARD_LIMIT_MEMORY_IN_MB = 20480
 
 
@@ -317,5 +318,3 @@ def container_name(service_name):
     return service_name + "Container"
 
 
-def strip_container_name(name):
-    return name.replace("Container", "")

@@ -64,7 +64,9 @@ class TaskDefinitionBuilderTest(TestCase):
                     "environment": {"PORT": "80"}
                 },
             },
-            ecr_image_uri="nginx:default"
+            ecr_image_uri="nginx:default",
+            fallback_task_role='fallback_arn1',
+            fallback_task_execution_role='fallback_arn2',
         )
 
         self.assertEqual(expected, actual)
@@ -78,8 +80,6 @@ class TaskDefinitionBuilderTest(TestCase):
             },
             'log_group': 'custom-log-group',
             'memory_reservation': 100,
-            'task_execution_role_arn': 'arn1',
-            'task_role_arn': 'arn2',
         }
         builder = TaskDefinitionBuilder(
             environment="test",
@@ -111,16 +111,18 @@ class TaskDefinitionBuilderTest(TestCase):
                 'name': 'dummyContainer',
                 'secrets': [],
             }],
-            'executionRoleArn': 'arn1',
+            'executionRoleArn': 'fallback_arn1',
             'family': 'testdummyFamily',
-            'taskRoleArn': 'arn2',
+            'taskRoleArn': 'fallback_arn2',
         }
 
         actual = builder.build_dict(
             container_configurations={
                 'dummyContainer': {},
             },
-            ecr_image_uri="nginx:default"
+            ecr_image_uri="nginx:default",
+            fallback_task_execution_role='fallback_arn1',
+            fallback_task_role='fallback_arn2',
         )
 
         self.assertEqual(expected, actual)
@@ -176,7 +178,9 @@ class TaskDefinitionBuilderTest(TestCase):
             container_configurations={
                 'dummyContainer': {},
             },
-            ecr_image_uri="nginx:default"
+            ecr_image_uri="nginx:default",
+            fallback_task_role='fallback_arn',
+            fallback_task_execution_role='fallback_arn',
         )
 
         self.assertEqual(expected, actual)

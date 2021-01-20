@@ -5,6 +5,7 @@ from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
                              PortMapping, Service, TaskDefinition, PlacementConstraint, SystemControl,
                              HealthCheck)
 from troposphere import Output, Ref, Template
+from cloudlift.deployment.deployer import container_name
 
 
 class TaskDefinitionBuilder:
@@ -17,12 +18,15 @@ class TaskDefinitionBuilder:
     def build_dict(self,
                    container_configurations,
                    ecr_image_uri,
+                   fallback_task_role,
+                   fallback_task_execution_role,
                    ):
         t = Template()
         t.add_resource(self.build_template_resource(
             container_configurations,
             ecr_image_uri=ecr_image_uri,
-
+            fallback_task_role=fallback_task_role,
+            fallback_task_execution_role=fallback_task_execution_role,
         ))
         task_definition = t.to_dict()["Resources"][self._resource_name(self.service_name)]["Properties"]
         return camelize_keys(task_definition)
@@ -30,7 +34,9 @@ class TaskDefinitionBuilder:
     def build_template_resource(
             self,
             container_configurations,
-            ecr_image_uri
+            ecr_image_uri,
+            fallback_task_role,
+            fallback_task_execution_role,
     ):
         environment = self.environment
         service_name = self.service_name
@@ -45,11 +51,13 @@ class TaskDefinitionBuilder:
                 config['placement_constraints']
             ]
 
-        if 'task_role_arn' in config:
-            td_kwargs['TaskRoleArn'] = config.get('task_role_arn')
+        td_kwargs['TaskRoleArn'] = config.get('task_role_arn') if 'task_role_arn' in config \
+            else fallback_task_role
 
-        if 'task_execution_role_arn' in config:
-            td_kwargs['ExecutionRoleArn'] = config.get('task_execution_role_arn')
+        td_kwargs['ExecutionRoleArn'] = config.get('task_execution_role_arn') \
+            if 'task_execution_role_arn' in config \
+            else fallback_task_execution_role
+
 
         if ('udp_interface' in config) or ('tcp_interface' in config):
             td_kwargs['NetworkMode'] = 'awsvpc'
@@ -197,11 +205,3 @@ def camelize_keys(data):
 
 def _camel_case(value):
     return value[:1].lower() + value[1:]
-
-
-def container_name(service_name):
-    return service_name + "Container"
-
-
-def strip_container_name(name):
-    return name.replace("Container", "")
