@@ -5,7 +5,6 @@ from pprint import pprint
 from time import sleep, time
 
 import boto3
-from colorclass import Color
 from deepdiff import DeepDiff
 
 from cloudlift.config import ParameterStore
@@ -16,7 +15,6 @@ from cloudlift.deployment.ecs import EcsTaskDefinition
 from cloudlift.deployment.task_definition_builder import TaskDefinitionBuilder
 from cloudlift.exceptions import UnrecoverableException
 
-HARD_LIMIT_MEMORY_IN_MB = 20480
 
 
 def find_essential_container(container_definitions):

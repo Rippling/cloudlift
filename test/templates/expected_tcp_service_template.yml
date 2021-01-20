@@ -168,6 +168,7 @@ Resources:
               ValueFrom: arn_injected_secrets
       ExecutionRoleArn: !Ref 'LdapServerTaskExecutionRole'
       Family: stagingLdapServerFamily
+      Memory: '20480'
       NetworkMode: awsvpc
       PlacementConstraints: []
       TaskRoleArn: !Ref 'LdapServerRole'

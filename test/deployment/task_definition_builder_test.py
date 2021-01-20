@@ -53,6 +53,7 @@ class TaskDefinitionBuilderTest(TestCase):
             }],
             'executionRoleArn': 'arn1',
             'family': 'testdummyFamily',
+            'memory': '20480',
             'taskRoleArn': 'arn2',
             'placementConstraints': [{'type': 'memberOf', 'expression': 'expr'}]
         }
@@ -80,6 +81,7 @@ class TaskDefinitionBuilderTest(TestCase):
             },
             'log_group': 'custom-log-group',
             'memory_reservation': 100,
+            'memory_hard_limit': 200,
         }
         builder = TaskDefinitionBuilder(
             environment="test",
@@ -113,6 +115,7 @@ class TaskDefinitionBuilderTest(TestCase):
             }],
             'executionRoleArn': 'fallback_arn1',
             'family': 'testdummyFamily',
+            'memory': '200',
             'taskRoleArn': 'fallback_arn2',
             'placementConstraints': [],
         }

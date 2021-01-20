@@ -123,6 +123,7 @@ class TestDeployer(TestCase):
         expected = deepcopy(current_task_definition)
         expected['containerDefinitions'][0]['image'] = 'nginx:v2'
         expected['tags'][0]['value'] = 'id-01'
+        expected['memory'] = '20480'
 
         client.describe_services.return_value = {'services': [{
             'taskDefinition': 'tdARN1',
@@ -149,6 +150,8 @@ class TestDeployer(TestCase):
 
         client.describe_services.assert_called_with(cluster_name='cluster-test', service_name='dummy-123')
         client.describe_task_definition.assert_called_with(task_definition_arn='tdARN1')
+        args, kwargs = client.register_task_definition.call_args
+        self.assertEqual(expected, kwargs)
         client.register_task_definition.assert_called_with(**expected)
 
 

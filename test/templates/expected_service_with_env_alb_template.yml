@@ -173,6 +173,7 @@ Resources:
               ValueFrom: arn_injected_secrets
       ExecutionRoleArn: !Ref 'DummyTaskExecutionRole'
       Family: stagingDummyFamily
+      Memory: '20480'
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyRole'
     Type: AWS::ECS::TaskDefinition
@@ -274,6 +275,7 @@ Resources:
               ValueFrom: arn_injected_secrets
       ExecutionRoleArn: !Ref 'DummyWithCustomListenerTaskExecutionRole'
       Family: stagingDummyWithCustomListenerFamily
+      Memory: '20480'
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyWithCustomListenerRole'
     Type: AWS::ECS::TaskDefinition

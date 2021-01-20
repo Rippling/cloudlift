@@ -177,6 +177,7 @@ Resources:
               ValueFrom: arn_injected_secrets
       ExecutionRoleArn: !Ref 'FreeradiusServerTaskExecutionRole'
       Family: stagingFreeradiusServerFamily
+      Memory: '20480'
       NetworkMode: awsvpc
       PlacementConstraints: []
       TaskRoleArn: !Ref 'FreeradiusServerRole'

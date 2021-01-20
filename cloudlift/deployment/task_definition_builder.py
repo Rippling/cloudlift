@@ -1,11 +1,13 @@
-from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
-                             DeploymentConfiguration, Environment, Secret,
-                             LoadBalancer, LogConfiguration,
-                             NetworkConfiguration, PlacementStrategy,
-                             PortMapping, Service, TaskDefinition, PlacementConstraint, SystemControl,
+from troposphere import Template
+from troposphere.ecs import (ContainerDefinition,
+                             Environment, Secret,
+                             LogConfiguration,
+                             PortMapping, TaskDefinition, PlacementConstraint, SystemControl,
                              HealthCheck)
-from troposphere import Output, Ref, Template
+
 from cloudlift.deployment.launch_types import LAUNCH_TYPE_FARGATE, get_launch_type
+
+HARD_LIMIT_MEMORY_IN_MB = 20480
 
 
 class TaskDefinitionBuilder:
@@ -156,6 +158,8 @@ class TaskDefinitionBuilder:
             td_kwargs['NetworkMode'] = 'awsvpc'
             td_kwargs['Cpu'] = str(config['fargate']['cpu'])
             td_kwargs['Memory'] = str(config['fargate']['memory'])
+        else:
+            td_kwargs['Memory'] = str(config.get('memory_hard_limit', HARD_LIMIT_MEMORY_IN_MB))
 
         return TaskDefinition(
             self._resource_name(service_name),
