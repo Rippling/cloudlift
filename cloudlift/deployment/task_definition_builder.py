@@ -75,7 +75,8 @@ class TaskDefinitionBuilder:
             "Essential": True,
             "LogConfiguration": log_config,
             "MemoryReservation": int(config['memory_reservation']),
-            "Cpu": 0
+            "Cpu": 0,
+            'Memory': int(config.get('memory_hard_limit', HARD_LIMIT_MEMORY_IN_MB)),
         }
 
         if config['command'] is not None:
@@ -159,7 +160,8 @@ class TaskDefinitionBuilder:
             td_kwargs['Cpu'] = str(config['fargate']['cpu'])
             td_kwargs['Memory'] = str(config['fargate']['memory'])
         else:
-            td_kwargs['Memory'] = str(config.get('memory_hard_limit', HARD_LIMIT_MEMORY_IN_MB))
+            if 'memory' in config:
+                td_kwargs['Memory'] = str(config.get('memory'))
 
         return TaskDefinition(
             self._resource_name(service_name),
