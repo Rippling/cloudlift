@@ -4,7 +4,7 @@ from time import sleep
 
 import boto3
 
-from cloudlift.config import get_account_id, get_cluster_name,\
+from cloudlift.config import get_account_id, get_cluster_name, \
     ServiceConfiguration, get_region_for_environment
 from cloudlift.config.logging import log_bold, log_intent, log_warning
 from cloudlift.deployment import deployer, ServiceInformationFetcher
@@ -12,6 +12,7 @@ from cloudlift.deployment.ecs import EcsClient
 from cloudlift.exceptions import UnrecoverableException
 from cloudlift.utils import chunks
 from cloudlift.deployment.ecr import ECR
+from stringcase import spinalcase
 
 DEPLOYMENT_COLORS = ['blue', 'magenta', 'white', 'cyan']
 DEPLOYMENT_CONCURRENCY = int(os.environ.get('CLOUDLIFT_DEPLOYMENT_CONCURRENCY', 4))
@@ -34,11 +35,12 @@ class ServiceUpdater(object):
         if not self.service_info_fetcher.stack_found:
             raise UnrecoverableException(
                 "error finding stack in ServiceUpdater: {}-{}".format(self.name, self.environment))
+        ecr_repo_config = self.service_configuration.get('ecr_repo')
         self.ecr = ECR(
             self.region,
-            self.service_info_fetcher.ecr_repo_name,
-            self.service_info_fetcher.ecr_account_id or get_account_id(),
-            self.service_info_fetcher.ecr_assume_role_arn,
+            ecr_repo_config.get('name', spinalcase(self.name + '-repo')),
+            ecr_repo_config.get('account_id', get_account_id()),
+            ecr_repo_config.get('assume_role_arn', None),
             version,
             build_args,
             dockerfile,

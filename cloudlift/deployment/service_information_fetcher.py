@@ -1,13 +1,11 @@
-from subprocess import call
+from re import search
 
 from cloudlift.config import get_client_for
-from cloudlift.config import get_cluster_name, get_service_stack_name, ServiceConfiguration
-from cloudlift.config.logging import log, log_bold, log_err, log_warning, log_intent
-from cloudlift.exceptions import UnrecoverableException
-from cloudlift.deployment.ecs import DeployAction, EcsClient
+from cloudlift.config import get_cluster_name, get_service_stack_name
 from cloudlift.config import get_region_for_environment
-from stringcase import spinalcase
-from re import search
+from cloudlift.config.logging import log, log_warning, log_intent
+from cloudlift.deployment.ecs import DeployAction, EcsClient
+from cloudlift.exceptions import UnrecoverableException
 
 
 class ServiceInformationFetcher(object):
@@ -28,12 +26,6 @@ class ServiceInformationFetcher(object):
 
             stack_outputs = {output['OutputKey']: output['OutputValue'] for output in stack['Outputs']}
 
-            ecr_repo_config = self.service_configuration.get('ecr_repo')
-
-            self.ecr_repo_name = ecr_repo_config.get('name', spinalcase(self.name + '-repo'))
-            self.ecr_assume_role_arn = ecr_repo_config.get('assume_role_arn', None)
-            self.ecr_account_id = ecr_repo_config.get('account_id', None)
-
             for service_name, service_config in self.service_configuration.get('services', {}).items():
                 service_metadata = dict()
 
@@ -50,7 +42,8 @@ class ServiceInformationFetcher(object):
                                    if resource_summary['LogicalResourceId'].endswith('ListenerRule')]
         except Exception as e:
             self.stack_found = False
-            log_warning("Could not determine services.")
+            log_warning("Could not determine services. Stack not found")
+
 
     def get_current_image_uri(self):
         ecr_image_uri = self._fetch_current_image_uri()
