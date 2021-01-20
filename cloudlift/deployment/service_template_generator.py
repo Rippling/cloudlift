@@ -36,11 +36,11 @@ from cloudlift.config.region import get_environment_level_alb_listener, get_clie
 from cloudlift.config.service_configuration import DEFAULT_TARGET_GROUP_DEREGISTRATION_DELAY, \
     DEFAULT_LOAD_BALANCING_ALGORITHM, DEFAULT_HEALTH_CHECK_INTERVAL_SECONDS, DEFAULT_HEALTH_CHECK_TIMEOUT_SECONDS, \
     DEFAULT_HEALTH_CHECK_HEALTHY_THRESHOLD_COUNT, DEFAULT_HEALTH_CHECK_UNHEALTHY_THRESHOLD_COUNT
-from cloudlift.deployment.deployer import build_config, container_name, get_automated_injected_secret_name
+from cloudlift.deployment.deployer import build_config, get_automated_injected_secret_name
 from cloudlift.deployment.template_generator import TemplateGenerator
 from cloudlift.exceptions import UnrecoverableException
-from cloudlift.deployment.task_definition_builder import TaskDefinitionBuilder
-from cloudlift.deployment.launch_types import LAUNCH_TYPE_FARGATE, LAUNCH_TYPE_EC2
+from cloudlift.deployment.task_definition_builder import TaskDefinitionBuilder, container_name
+from cloudlift.deployment.launch_types import LAUNCH_TYPE_FARGATE, LAUNCH_TYPE_EC2, get_launch_type
 
 
 class ServiceTemplateGenerator(TemplateGenerator):
@@ -210,7 +210,7 @@ service is down',
         )
 
     def _add_service(self, service_name, config):
-        launch_type = LAUNCH_TYPE_FARGATE if 'fargate' in config else LAUNCH_TYPE_EC2
+        launch_type = get_launch_type(config)
         secrets_name = config.get('secrets_name')
         container_configurations = build_config(self.env, self.application_name, service_name,
                                                 self.env_sample_file_path,
@@ -230,12 +230,11 @@ service is down',
             region=self.region,
         )
 
-        td = builder.build_template_resource(
+        td = builder.build_cloudformation_resource(
             container_configurations=container_configurations,
             ecr_image_uri=self.ecr_image_uri,
             fallback_task_role=Ref(task_role),
             fallback_task_execution_role=Ref(task_execution_role),
-            launch_type=launch_type,
         )
 
         self.template.add_resource(td)

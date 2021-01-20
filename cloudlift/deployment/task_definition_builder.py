@@ -5,8 +5,7 @@ from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
                              PortMapping, Service, TaskDefinition, PlacementConstraint, SystemControl,
                              HealthCheck)
 from troposphere import Output, Ref, Template
-from cloudlift.deployment.deployer import container_name
-from cloudlift.deployment.launch_types import LAUNCH_TYPE_FARGATE
+from cloudlift.deployment.launch_types import LAUNCH_TYPE_FARGATE, get_launch_type
 
 
 class TaskDefinitionBuilder:
@@ -21,30 +20,28 @@ class TaskDefinitionBuilder:
                    ecr_image_uri,
                    fallback_task_role,
                    fallback_task_execution_role,
-                   launch_type,
                    ):
         t = Template()
-        t.add_resource(self.build_template_resource(
+        t.add_resource(self.build_cloudformation_resource(
             container_configurations,
             ecr_image_uri=ecr_image_uri,
             fallback_task_role=fallback_task_role,
             fallback_task_execution_role=fallback_task_execution_role,
-            launch_type=launch_type,
         ))
         task_definition = t.to_dict()["Resources"][self._resource_name(self.service_name)]["Properties"]
         return camelize_keys(task_definition)
 
-    def build_template_resource(
+    def build_cloudformation_resource(
             self,
             container_configurations,
             ecr_image_uri,
             fallback_task_role,
             fallback_task_execution_role,
-            launch_type,
     ):
         environment = self.environment
         service_name = self.service_name
         config = self.configuration
+        launch_type = get_launch_type(config)
         task_family_name = f'{environment}{service_name}Family'[:255]
         td_kwargs = dict()
 
@@ -219,3 +216,7 @@ def camelize_keys(data):
 
 def _camel_case(value):
     return value[:1].lower() + value[1:]
+
+
+def container_name(service_name):
+    return service_name + "Container"

@@ -1,6 +1,5 @@
 from unittest import TestCase
 from cloudlift.deployment.task_definition_builder import TaskDefinitionBuilder
-from cloudlift.deployment.launch_types import LAUNCH_TYPE_EC2, LAUNCH_TYPE_FARGATE
 
 
 class TaskDefinitionBuilderTest(TestCase):
@@ -68,7 +67,6 @@ class TaskDefinitionBuilderTest(TestCase):
             ecr_image_uri="nginx:default",
             fallback_task_role='fallback_arn1',
             fallback_task_execution_role='fallback_arn2',
-            launch_type=LAUNCH_TYPE_EC2,
         )
 
         self.assertEqual(expected, actual)
@@ -126,7 +124,6 @@ class TaskDefinitionBuilderTest(TestCase):
             ecr_image_uri="nginx:default",
             fallback_task_execution_role='fallback_arn1',
             fallback_task_role='fallback_arn2',
-            launch_type=LAUNCH_TYPE_EC2,
         )
 
         self.assertEqual(expected, actual)
@@ -194,7 +191,6 @@ class TaskDefinitionBuilderTest(TestCase):
             ecr_image_uri="nginx:default",
             fallback_task_role='fallback_arn',
             fallback_task_execution_role='fallback_arn',
-            launch_type=LAUNCH_TYPE_FARGATE,
         )
 
         self.assertEqual(expected, actual)

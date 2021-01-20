@@ -10,6 +10,10 @@ from cloudlift.exceptions import UnrecoverableException
 from colorclass import Color
 from terminaltables import SingleTable
 from cloudlift.config import secrets_manager
+from cloudlift.deployment.task_definition_builder import TaskDefinitionBuilder
+from cloudlift.deployment.ecs import EcsTaskDefinition
+from deepdiff import DeepDiff
+from pprint import pprint
 
 
 HARD_LIMIT_MEMORY_IN_MB = 20480
@@ -30,12 +34,24 @@ def revert_deployment(client, cluster_name, ecs_service_name, color, timeout_sec
 
 
 def deploy_new_version(client, cluster_name, ecs_service_name, ecs_service_logical_name, deployment_identifier,
-                       deploy_version_tag, service_name, sample_env_file_path,
-                       timeout_seconds, env_name, secrets_name, color='white', complete_image_uri=None):
-    task_definition = create_new_task_definition(color, complete_image_uri, deploy_version_tag, ecs_service_name,
-                                                 env_name, sample_env_file_path, secrets_name, service_name,
-                                                 client,
-                                                 cluster_name, deployment_identifier, ecs_service_logical_name)
+                       service_name, sample_env_file_path,
+                       timeout_seconds, env_name, secrets_name, service_configuration, region, ecr_image_uri,
+                       color='white'):
+    task_definition = create_new_task_definition(
+        color=color,
+        ecr_image_uri=ecr_image_uri,
+        ecs_service_name=ecs_service_name,
+        env_name=env_name,
+        sample_env_file_path=sample_env_file_path,
+        secrets_name=secrets_name,
+        service_name=service_name,
+        client=client,
+        cluster_name=cluster_name,
+        deployment_identifier=deployment_identifier,
+        ecs_service_logical_name=ecs_service_logical_name,
+        service_configuration=service_configuration,
+        region=region,
+    )
     deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_seconds, 'Deploy')
 
 
@@ -54,26 +70,32 @@ def deploy_task_definition(client, task_definition, cluster_name, ecs_service_na
     log_bold(ecs_service_name + f" {action_name}: Completed successfully.")
 
 
-def create_new_task_definition(color, complete_image_uri, deploy_version_tag, ecs_service_name, env_name,
+def create_new_task_definition(color, ecr_image_uri, ecs_service_name, env_name,
                                sample_env_file_path, secrets_name, service_name, client, cluster_name,
-                               deployment_identifier, ecs_service_logical_name):
+                               deployment_identifier, ecs_service_logical_name, service_configuration, region):
     deployment = DeployAction(client, cluster_name, ecs_service_name)
     task_definition = deployment.get_current_task_definition(deployment.service)
     essential_container = find_essential_container(task_definition[u'containerDefinitions'])
     container_configurations = build_config(env_name, service_name, ecs_service_logical_name, sample_env_file_path,
                                             essential_container,
                                             secrets_name)
-    if complete_image_uri is not None:
-        task_definition.set_images(essential_container, deploy_version_tag, **{essential_container: complete_image_uri})
-    else:
-        task_definition.set_images(essential_container, deploy_version_tag)
-    for container in task_definition.containers:
-        env_config = container_configurations.get(container['name'], {})
-        task_definition.apply_container_environment_and_secrets(container, env_config)
-        task_definition.apply_memory_hard_limit(HARD_LIMIT_MEMORY_IN_MB)
-    print_task_diff(ecs_service_name, task_definition.diff, color)
-    new_task_definition = deployment.update_task_definition(task_definition, deployment_identifier)
-    return new_task_definition
+    task_definition.compute_diffs(essential_container, ecr_image_uri)
+
+    builder = TaskDefinitionBuilder(
+        environment=env_name,
+        service_name=ecs_service_logical_name,
+        configuration=service_configuration,
+        region=region,
+    )
+    updated_task_definition = EcsTaskDefinition(builder.build_dict(
+        container_configurations=container_configurations,
+        ecr_image_uri=ecr_image_uri,
+        fallback_task_role=task_definition.role_arn,
+        fallback_task_execution_role=task_definition.execution_role_arn,
+    ))
+    pprint(DeepDiff(task_definition, updated_task_definition, indent=2))
+    print_task_diff(ecs_service_name, updated_task_definition.diff, color)
+    return deployment.update_task_definition(updated_task_definition, deployment_identifier)
 
 
 def deploy_and_wait(deployment, new_task_definition, color, timeout_seconds):
@@ -312,9 +334,5 @@ def _prepare_diff_table(diff):
                 ]
             )
     return table_data
-
-
-def container_name(service_name):
-    return service_name + "Container"
 
 

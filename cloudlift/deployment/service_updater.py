@@ -62,11 +62,11 @@ class ServiceUpdater(object):
         image_url = self.ecr.image_uri
         target = deployer.deploy_new_version
         kwargs = dict(client=ecs_client, cluster_name=self.cluster_name,
-                      deploy_version_tag=self.version,
                       service_name=self.name, sample_env_file_path=self.env_sample_file,
                       timeout_seconds=self.timeout_seconds, env_name=self.environment,
-                      complete_image_uri=image_url,
-                      deployment_identifier=self.deployment_identifier)
+                      ecr_image_uri=image_url,
+                      deployment_identifier=self.deployment_identifier,
+                      )
         self.run_job_for_all_services("Deploy", target, kwargs)
 
     def revert(self):
@@ -88,10 +88,14 @@ class ServiceUpdater(object):
             ecs_service_info = service_info[ecs_service_logical_name]
             log_bold(f"Queueing {job_name} of " + ecs_service_info['ecs_service_name'])
             color = DEPLOYMENT_COLORS[index % 3]
+            services_configuration = self.service_configuration['services']
             kwargs.update(dict(ecs_service_name=ecs_service_info['ecs_service_name'],
                                secrets_name=ecs_service_info.get('secrets_name'),
                                ecs_service_logical_name=ecs_service_logical_name,
-                               color=color))
+                               color=color,
+                               service_configuration=services_configuration.get(ecs_service_logical_name),
+                               region=self.region,
+                               ))
             process = multiprocessing.Process(
                 target=target,
                 kwargs=kwargs

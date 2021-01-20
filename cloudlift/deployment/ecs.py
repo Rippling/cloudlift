@@ -45,7 +45,8 @@ class EcsClient(object):
         return response.get('taskDefinitionArns', []), response.get('nextToken', None)
 
     def list_task_definitions_for_next_token(self, family, next_token):
-        response = self.boto.list_task_definitions(familyPrefix=family, status='ACTIVE', sort='DESC', nextToken=next_token)
+        response = self.boto.list_task_definitions(familyPrefix=family, status='ACTIVE', sort='DESC',
+                                                   nextToken=next_token)
         return response.get('taskDefinitionArns', []), response.get('nextToken', None)
 
     def describe_task_definition(self, task_definition_arn):
@@ -274,37 +275,23 @@ class EcsTaskDefinition(dict):
     def get_overrides_env(env):
         return [{"name": e, "value": env[e]} for e in env]
 
-    def apply_memory_hard_limit(self,memory):
+    def apply_memory_hard_limit(self, memory):
         for container in self.containers:
             container['memory'] = memory
 
-    def set_images(self, container_to_deploy, tag=None, **images):
-        self.validate_container_options(**images)
+    def compute_diffs(self, container_to_deploy, ecr_image_uri):
         for container in self.containers:
-            if container[u'name'] != container_to_deploy:
+            container_name = container[u'name']
+            if container_name != container_to_deploy:
                 continue
 
-            if container[u'name'] in images:
-                new_image = images[container[u'name']]
-                diff = EcsTaskDefinitionDiff(
-                    container=container[u'name'],
-                    field=u'image',
-                    value=new_image,
-                    old_value=container[u'image']
-                )
-                self._diff.append(diff)
-                container[u'image'] = new_image
-            elif tag:
-                image_definition = container[u'image'].rsplit(u':', 1)
-                new_image = u'%s:%s' % (image_definition[0], tag.strip())
-                diff = EcsTaskDefinitionDiff(
-                    container=container[u'name'],
-                    field=u'image',
-                    value=new_image,
-                    old_value=container[u'image']
-                )
-                self._diff.append(diff)
-                container[u'image'] = new_image
+            diff = EcsTaskDefinitionDiff(
+                container=container_name,
+                field=u'image',
+                value=ecr_image_uri,
+                old_value=container[u'image']
+            )
+            self._diff.append(diff)
 
     def apply_container_environment_and_secrets(self, container, new_environment_and_secrets):
         new_environment = new_environment_and_secrets.get('environment', {})
@@ -316,13 +303,6 @@ class EcsTaskDefinition(dict):
         old_secrets = {env['name']: env['valueFrom'] for env in container.get('secrets', {})}
         container[u'secrets'] = [{"name": s, "valueFrom": new_secrets[s]} for s in new_secrets]
         self._diff.append(EcsTaskDefinitionDiff(container['name'], 'secrets', new_secrets, old_secrets))
-
-    def validate_container_options(self, **container_options):
-        for container_name in container_options:
-            if container_name not in self.container_names:
-                raise UnknownContainerError(
-                    u'Unknown container: %s' % container_name
-                )
 
 
 class EcsTaskDefinitionDiff(object):
@@ -406,7 +386,8 @@ class EcsAction(object):
             if td:
                 return td
 
-        raise UnrecoverableException(f'task definition does not exist for deployment_identifier: {deployment_identifier}')
+        raise UnrecoverableException(
+            f'task definition does not exist for deployment_identifier: {deployment_identifier}')
 
     def getEcsTaskDefinitionByArn(self, task_definition_arn):
         task_definition_payload = self._client.describe_task_definition(
@@ -428,15 +409,6 @@ class EcsAction(object):
         return task_definition
 
     def update_task_definition(self, task_definition, deployment_identifier):
-        fargate_td = {}
-        if task_definition.requires_compatibilities and 'FARGATE' in task_definition.requires_compatibilities:
-            fargate_td = {
-                'requires_compatibilities': task_definition.requires_compatibilities or [],
-                'network_mode': task_definition.network_mode or u'',
-                'cpu': task_definition.cpu or u'',
-                'memory': task_definition.memory or u'',
-            }
-
         tags = [
             {
                 'key': 'deployment_identifier',
@@ -445,15 +417,8 @@ class EcsAction(object):
         ] if deployment_identifier is not None else []
 
         response = self._client.register_task_definition(
-            family=task_definition.family,
-            containers=task_definition.containers,
-            volumes=task_definition.volumes,
-            role_arn=task_definition.role_arn,
-            placement_constraints=task_definition.placement_constraints,
-            network_mode=task_definition.network_mode,
-            execution_role_arn=task_definition.execution_role_arn or u'',
             tags=tags,
-            **fargate_td
+            **task_definition
         )
         new_task_definition = EcsTaskDefinition(response[u'taskDefinition'])
         if 'previous_task_definition_arn' in task_definition.tags:

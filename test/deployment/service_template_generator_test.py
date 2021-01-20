@@ -2,11 +2,10 @@ import datetime
 import os
 from decimal import Decimal
 from unittest import TestCase
-import dictdiffer
 
-from cfn_flip import to_json, to_yaml, load
-from mock import patch, MagicMock, call
-from moto import mock_dynamodb2
+import dictdiffer
+from cfn_flip import to_json, load
+from mock import patch, MagicMock
 
 from cloudlift.config import ServiceConfiguration
 from cloudlift.deployment.service_template_generator import ServiceTemplateGenerator
