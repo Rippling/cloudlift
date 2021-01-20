@@ -71,28 +71,10 @@ class EcsClient(object):
     def describe_tasks(self, cluster_name, task_arns):
         return self.boto.describe_tasks(cluster=cluster_name, tasks=task_arns)
 
-    def register_task_definition(self, family, containers, volumes, role_arn, cpu=False, memory=False,
-                                 execution_role_arn=None,
-                                 requires_compatibilities=[], network_mode='bridge', placement_constraints=[], tags=[]):
-        options = {}
-        if 'FARGATE' in requires_compatibilities:
-            options = {
-                'requiresCompatibilities': requires_compatibilities or [],
-                'cpu': cpu,
-                'memory': memory,
-            }
-        if network_mode:
-            options['networkMode'] = network_mode
-
+    def register_task_definition(self, tags, **kwargs):
         return self.boto.register_task_definition(
-            family=family,
-            containerDefinitions=containers,
-            volumes=volumes,
-            taskRoleArn=role_arn or u'',
-            placementConstraints=placement_constraints,
-            executionRoleArn=execution_role_arn or u'',
             tags=tags,
-            **options
+            **kwargs
         )
 
     def deregister_task_definition(self, task_definition_arn):

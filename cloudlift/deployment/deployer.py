@@ -1,27 +1,27 @@
-from datetime import datetime
-from time import sleep, time
 import os
-import boto3
+from datetime import datetime
 from glob import glob
+from pprint import pprint
+from time import sleep, time
+
+import boto3
+from colorclass import Color
+from deepdiff import DeepDiff
+
 from cloudlift.config import ParameterStore
+from cloudlift.config import secrets_manager
 from cloudlift.config.logging import log_bold, log_err, log_intent, log_with_color, log_warning, log
 from cloudlift.deployment.ecs import DeployAction
-from cloudlift.exceptions import UnrecoverableException
-from colorclass import Color
-from terminaltables import SingleTable
-from cloudlift.config import secrets_manager
-from cloudlift.deployment.task_definition_builder import TaskDefinitionBuilder
 from cloudlift.deployment.ecs import EcsTaskDefinition
-from deepdiff import DeepDiff
-from pprint import pprint
-
+from cloudlift.deployment.task_definition_builder import TaskDefinitionBuilder
+from cloudlift.exceptions import UnrecoverableException
 
 HARD_LIMIT_MEMORY_IN_MB = 20480
 
 
 def find_essential_container(container_definitions):
     for defn in container_definitions:
-        if defn[u'essential']:
+        if str(defn[u'essential']).lower() == 'true':
             return defn[u'name']
     raise UnrecoverableException('no essential containers found')
 
@@ -80,6 +80,7 @@ def create_new_task_definition(color, ecr_image_uri, ecs_service_name, env_name,
                                             essential_container,
                                             secrets_name)
     task_definition.compute_diffs(essential_container, ecr_image_uri)
+    print_task_diff(ecs_service_name, task_definition.diff, color)
 
     builder = TaskDefinitionBuilder(
         environment=env_name,
@@ -93,8 +94,7 @@ def create_new_task_definition(color, ecr_image_uri, ecs_service_name, env_name,
         fallback_task_role=task_definition.role_arn,
         fallback_task_execution_role=task_definition.execution_role_arn,
     ))
-    pprint(DeepDiff(task_definition, updated_task_definition, indent=2))
-    print_task_diff(ecs_service_name, updated_task_definition.diff, color)
+    pprint(DeepDiff(task_definition, updated_task_definition))
     return deployment.update_task_definition(updated_task_definition, deployment_identifier)
 
 
@@ -293,46 +293,3 @@ def print_task_diff(ecs_service_name, diffs, color):
         log_with_color(ecs_service_name + " " + str(image_diff), color)
     else:
         log_with_color(ecs_service_name + " No change in image version", color)
-    env_diff = next(x for x in diffs if x.field == 'environment')
-    table_data = _prepare_diff_table(env_diff)
-    if len(table_data) > 1:
-        log_with_color(ecs_service_name + " Environment changes", color)
-        print(SingleTable(table_data).table)
-    else:
-        log_with_color(ecs_service_name + " No change in environment variables", color)
-    secrets_diff = next(x for x in diffs if x.field == 'secrets')
-    table_data = _prepare_diff_table(secrets_diff)
-    if len(table_data) > 1:
-        log_with_color(ecs_service_name + " Secrets changes", color)
-        print(SingleTable(table_data).table)
-    else:
-        log_with_color(ecs_service_name + " No change in secrets", color)
-
-
-def _prepare_diff_table(diff):
-    old_value, current_value = diff.old_value, diff.value
-    keys = sorted(set(diff.old_value.keys()).union(diff.value.keys()))
-    table_data = [[
-        Color('{autoyellow}Name{/autoyellow}'),
-        Color('{autoyellow}Old value{/autoyellow}'),
-        Color('{autoyellow}Current value{/autoyellow}')
-    ]]
-    for env_var in keys:
-        old_val = old_value.get(env_var, '-')
-        current_val = current_value.get(env_var, '-')
-        if old_val != current_val:
-            env_var_diff_color = 'autored'
-            table_data.append(
-                [
-                    Color(
-                        '{' + env_var_diff_color + '}' +
-                        env_var +
-                        '{/' + env_var_diff_color + '}'
-                    ),
-                    old_val,
-                    current_val
-                ]
-            )
-    return table_data
-
-

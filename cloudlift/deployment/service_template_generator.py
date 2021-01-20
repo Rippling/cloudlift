@@ -551,33 +551,6 @@ service is down',
         ))
         return task_execution_role
 
-    def _gen_container_definitions_for_sidecar(self, sidecar, log_config, env_config):
-        cd = {}
-        if 'command' in sidecar:
-            cd['Command'] = sidecar['command']
-
-        return ContainerDefinition(
-            Name=container_name(sidecar.get('name')),
-            Environment=[Environment(Name=k, Value=v) for (k, v) in env_config],
-            MemoryReservation=int(sidecar.get('memory_reservation')),
-            Image=sidecar.get('image'),
-            LogConfiguration=log_config,
-            Essential=False,
-            **cd
-        )
-
-    def _gen_log_config(self, service_name):
-        current_service_config = self.configuration['services'][service_name]
-        env_log_group = '-'.join([self.env, 'logs'])
-        return LogConfiguration(
-            LogDriver="awslogs",
-            Options={
-                'awslogs-stream-prefix': service_name,
-                'awslogs-group': current_service_config.get('log_group', env_log_group),
-                'awslogs-region': self.region
-            }
-        )
-
     def _add_ecs_lb(self, service_name, config, launch_type):
         target_group_name = "TargetGroup" + service_name
         health_check_path = config['http_interface']['health_check_path'] if 'health_check_path' in config[

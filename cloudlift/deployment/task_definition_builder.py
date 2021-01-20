@@ -70,7 +70,7 @@ class TaskDefinitionBuilder:
             "Secrets": [Secret(Name=name, ValueFrom=secrets_config[name]) for name in secrets_config],
             "Name": container_name(service_name),
             "Image": ecr_image_uri,
-            "Essential": 'true',
+            "Essential": True,
             "LogConfiguration": log_config,
             "MemoryReservation": int(config['memory_reservation']),
             "Cpu": 0
