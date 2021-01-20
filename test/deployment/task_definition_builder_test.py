@@ -1,5 +1,6 @@
 from unittest import TestCase
 from cloudlift.deployment.task_definition_builder import TaskDefinitionBuilder
+from cloudlift.deployment.launch_types import LAUNCH_TYPE_EC2, LAUNCH_TYPE_FARGATE
 
 
 class TaskDefinitionBuilderTest(TestCase):
@@ -67,6 +68,7 @@ class TaskDefinitionBuilderTest(TestCase):
             ecr_image_uri="nginx:default",
             fallback_task_role='fallback_arn1',
             fallback_task_execution_role='fallback_arn2',
+            launch_type=LAUNCH_TYPE_EC2,
         )
 
         self.assertEqual(expected, actual)
@@ -114,6 +116,7 @@ class TaskDefinitionBuilderTest(TestCase):
             'executionRoleArn': 'fallback_arn1',
             'family': 'testdummyFamily',
             'taskRoleArn': 'fallback_arn2',
+            'placementConstraints': [],
         }
 
         actual = builder.build_dict(
@@ -123,6 +126,7 @@ class TaskDefinitionBuilderTest(TestCase):
             ecr_image_uri="nginx:default",
             fallback_task_execution_role='fallback_arn1',
             fallback_task_role='fallback_arn2',
+            launch_type=LAUNCH_TYPE_EC2,
         )
 
         self.assertEqual(expected, actual)
@@ -133,6 +137,10 @@ class TaskDefinitionBuilderTest(TestCase):
             'container_health_check': {
                 'command': './check-health.sh',
                 'start_period': 10
+            },
+            'fargate': {
+                'cpu': 10,
+                'memory': 256,
             },
             'log_group': 'custom-log-group',
             'memory_reservation': 100,
@@ -169,9 +177,14 @@ class TaskDefinitionBuilderTest(TestCase):
                 'name': 'dummyContainer',
                 'secrets': [],
             }],
+            'cpu': '10',
             'executionRoleArn': 'arn1',
             'family': 'testdummyFamily',
+            'memory': '256',
+            'networkMode': 'awsvpc',
+            'requiresCompatibilities': ['FARGATE'],
             'taskRoleArn': 'arn2',
+            'placementConstraints': [],
         }
 
         actual = builder.build_dict(
@@ -181,6 +194,7 @@ class TaskDefinitionBuilderTest(TestCase):
             ecr_image_uri="nginx:default",
             fallback_task_role='fallback_arn',
             fallback_task_execution_role='fallback_arn',
+            launch_type=LAUNCH_TYPE_FARGATE,
         )
 
         self.assertEqual(expected, actual)

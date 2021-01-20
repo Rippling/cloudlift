@@ -6,6 +6,7 @@ from troposphere.ecs import (AwsvpcConfiguration, ContainerDefinition,
                              HealthCheck)
 from troposphere import Output, Ref, Template
 from cloudlift.deployment.deployer import container_name
+from cloudlift.deployment.launch_types import LAUNCH_TYPE_FARGATE
 
 
 class TaskDefinitionBuilder:
@@ -20,6 +21,7 @@ class TaskDefinitionBuilder:
                    ecr_image_uri,
                    fallback_task_role,
                    fallback_task_execution_role,
+                   launch_type,
                    ):
         t = Template()
         t.add_resource(self.build_template_resource(
@@ -27,6 +29,7 @@ class TaskDefinitionBuilder:
             ecr_image_uri=ecr_image_uri,
             fallback_task_role=fallback_task_role,
             fallback_task_execution_role=fallback_task_execution_role,
+            launch_type=launch_type,
         ))
         task_definition = t.to_dict()["Resources"][self._resource_name(self.service_name)]["Properties"]
         return camelize_keys(task_definition)
@@ -37,6 +40,7 @@ class TaskDefinitionBuilder:
             ecr_image_uri,
             fallback_task_role,
             fallback_task_execution_role,
+            launch_type,
     ):
         environment = self.environment
         service_name = self.service_name
@@ -44,12 +48,11 @@ class TaskDefinitionBuilder:
         task_family_name = f'{environment}{service_name}Family'[:255]
         td_kwargs = dict()
 
-        if 'placement_constraints' in config:
-            td_kwargs['PlacementConstraints'] = [
-                PlacementConstraint(Type=constraint['type'],
-                                    Expression=constraint['expression']) for constraint in
-                config['placement_constraints']
-            ]
+        td_kwargs['PlacementConstraints'] = [
+            PlacementConstraint(Type=constraint['type'],
+                                Expression=constraint['expression']) for constraint in
+            config.get('placement_constraints', [])
+        ]
 
         td_kwargs['TaskRoleArn'] = config.get('task_role_arn') if 'task_role_arn' in config \
             else fallback_task_role
@@ -57,7 +60,6 @@ class TaskDefinitionBuilder:
         td_kwargs['ExecutionRoleArn'] = config.get('task_execution_role_arn') \
             if 'task_execution_role_arn' in config \
             else fallback_task_execution_role
-
 
         if ('udp_interface' in config) or ('tcp_interface' in config):
             td_kwargs['NetworkMode'] = 'awsvpc'
@@ -87,6 +89,12 @@ class TaskDefinitionBuilder:
             cd_kwargs['SystemControls'] = [SystemControl(Namespace=system_control['namespace'],
                                                          Value=system_control['value']) for
                                            system_control in config['system_controls']]
+
+        if launch_type == LAUNCH_TYPE_FARGATE:
+            if 'udp_interface' in config:
+                raise NotImplementedError('udp interface not yet implemented in fargate type, please use ec2 type')
+            elif 'tcp_interface' in config:
+                raise NotImplementedError('tcp interface not yet implemented in fargate type, please use ec2 type')
 
         if 'http_interface' in config:
             cd_kwargs['PortMappings'] = [
@@ -146,6 +154,12 @@ class TaskDefinitionBuilder:
                                                                     container_name(sidecar.get('name')),
                                                                     {})),
                 )
+        if launch_type == LAUNCH_TYPE_FARGATE:
+            td_kwargs['RequiresCompatibilities'] = [LAUNCH_TYPE_FARGATE]
+            td_kwargs['NetworkMode'] = 'awsvpc'
+            td_kwargs['Cpu'] = str(config['fargate']['cpu'])
+            td_kwargs['Memory'] = str(config['fargate']['memory'])
+
         return TaskDefinition(
             self._resource_name(service_name),
             Family=task_family_name,
