@@ -158,6 +158,7 @@ Resources:
               awslogs-group: staging-logs
               awslogs-region: us-west-2
               awslogs-stream-prefix: LdapServer
+          Memory: 20480
           MemoryReservation: 1024
           Name: LdapServerContainer
           PortMappings:
@@ -168,7 +169,6 @@ Resources:
               ValueFrom: arn_injected_secrets
       ExecutionRoleArn: !Ref 'LdapServerTaskExecutionRole'
       Family: stagingLdapServerFamily
-      Memory: '20480'
       NetworkMode: awsvpc
       PlacementConstraints: []
       TaskRoleArn: !Ref 'LdapServerRole'

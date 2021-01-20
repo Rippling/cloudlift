@@ -44,6 +44,7 @@ class TaskDefinitionBuilderTest(TestCase):
                         'awslogs-stream-prefix': 'dummy',
                     },
                 },
+                'memory': 20480,
                 'memoryReservation': 100,
                 'name': 'dummyContainer',
                 'portMappings': [{'containerPort': 9090}],
@@ -53,7 +54,6 @@ class TaskDefinitionBuilderTest(TestCase):
             }],
             'executionRoleArn': 'arn1',
             'family': 'testdummyFamily',
-            'memory': '20480',
             'taskRoleArn': 'arn2',
             'placementConstraints': [{'type': 'memberOf', 'expression': 'expr'}]
         }
@@ -109,13 +109,13 @@ class TaskDefinitionBuilderTest(TestCase):
                         'awslogs-stream-prefix': 'dummy',
                     },
                 },
+                'memory': 200,
                 'memoryReservation': 100,
                 'name': 'dummyContainer',
                 'secrets': [],
             }],
             'executionRoleArn': 'fallback_arn1',
             'family': 'testdummyFamily',
-            'memory': '200',
             'taskRoleArn': 'fallback_arn2',
             'placementConstraints': [],
         }
@@ -173,6 +173,7 @@ class TaskDefinitionBuilderTest(TestCase):
                         'awslogs-stream-prefix': 'dummy',
                     },
                 },
+                'memory': 20480,
                 'memoryReservation': 100,
                 'name': 'dummyContainer',
                 'secrets': [],

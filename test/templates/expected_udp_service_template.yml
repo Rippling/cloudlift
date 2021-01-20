@@ -163,6 +163,7 @@ Resources:
               awslogs-group: staging-logs
               awslogs-region: us-west-2
               awslogs-stream-prefix: FreeradiusServer
+          Memory: 20480
           MemoryReservation: 1024
           Name: FreeradiusServerContainer
           PortMappings:
@@ -177,7 +178,6 @@ Resources:
               ValueFrom: arn_injected_secrets
       ExecutionRoleArn: !Ref 'FreeradiusServerTaskExecutionRole'
       Family: stagingFreeradiusServerFamily
-      Memory: '20480'
       NetworkMode: awsvpc
       PlacementConstraints: []
       TaskRoleArn: !Ref 'FreeradiusServerRole'

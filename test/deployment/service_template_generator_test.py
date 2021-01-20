@@ -9,6 +9,9 @@ from mock import patch, MagicMock
 
 from cloudlift.config import ServiceConfiguration
 from cloudlift.deployment.service_template_generator import ServiceTemplateGenerator
+import json
+from deepdiff import DeepDiff
+from pprint import pformat
 
 
 def mock_build_config_impl(env_name, cloudlift_service_name, dummy_ecs_service_name, sample_env_file_path,
@@ -212,7 +215,7 @@ class TestServiceTemplateGenerator(TestCase):
         generated_template = template_generator.generate_service()
         template_file_path = os.path.join(os.path.dirname(__file__), '../templates/expected_service_template.yml')
         with(open(template_file_path)) as expected_template_file:
-            assert to_json(generated_template) == to_json(''.join(expected_template_file.readlines()))
+            self.assert_template(to_json(''.join(expected_template_file.readlines())), to_json(generated_template))
 
     @patch('cloudlift.deployment.service_template_generator.build_config')
     @patch('cloudlift.deployment.service_template_generator.get_account_id')
@@ -326,7 +329,7 @@ class TestServiceTemplateGenerator(TestCase):
         template_file_path = os.path.join(os.path.dirname(__file__),
                                           '../templates/expected_service_with_external_alb_template.yml')
         with(open(template_file_path)) as expected_template_file:
-            assert to_json(generated_template) == to_json(''.join(expected_template_file.readlines()))
+            self.assert_template(to_json(''.join(expected_template_file.readlines())), to_json(generated_template))
 
     @patch('cloudlift.deployment.service_template_generator.get_client_for')
     @patch('cloudlift.deployment.service_template_generator.get_environment_level_alb_listener')
@@ -429,7 +432,7 @@ class TestServiceTemplateGenerator(TestCase):
         template_file_path = os.path.join(os.path.dirname(__file__),
                                           '../templates/expected_service_with_env_alb_template.yml')
         with(open(template_file_path)) as expected_template_file:
-            assert to_json(generated_template) == to_json(''.join(expected_template_file.readlines()))
+            self.assert_template(to_json(''.join(expected_template_file.readlines())), to_json(generated_template))
 
     @patch('cloudlift.deployment.service_template_generator.build_config')
     @patch('cloudlift.deployment.service_template_generator.get_account_id')
@@ -457,7 +460,7 @@ class TestServiceTemplateGenerator(TestCase):
         template_file_path = os.path.join(os.path.dirname(__file__),
                                           '../templates/expected_fargate_service_template.yml')
         with(open(template_file_path)) as expected_template_file:
-            assert to_json(generated_template) == to_json(''.join(expected_template_file.readlines()))
+            self.assert_template(to_json(''.join(expected_template_file.readlines())), to_json(generated_template))
 
     @patch('cloudlift.deployment.service_template_generator.build_config')
     @patch('cloudlift.deployment.service_template_generator.get_account_id')
@@ -505,7 +508,7 @@ class TestServiceTemplateGenerator(TestCase):
         template_file_path = os.path.join(os.path.dirname(__file__), '../templates/expected_udp_service_template.yml')
 
         with(open(template_file_path)) as expected_template_file:
-            assert to_json(generated_template) == to_json(''.join(expected_template_file.readlines()))
+            self.assert_template(to_json(''.join(expected_template_file.readlines())), to_json(generated_template))
 
     @patch('cloudlift.deployment.service_template_generator.build_config')
     @patch('cloudlift.deployment.service_template_generator.get_account_id')
@@ -529,7 +532,7 @@ class TestServiceTemplateGenerator(TestCase):
         template_file_path = os.path.join(os.path.dirname(__file__), '../templates/expected_tcp_service_template.yml')
 
         with(open(template_file_path)) as expected_template_file:
-            assert to_json(generated_template) == to_json(''.join(expected_template_file.readlines()))
+            self.assert_template(to_json(''.join(expected_template_file.readlines())), to_json(generated_template))
 
     @patch('cloudlift.deployment.service_template_generator.build_config')
     @patch('cloudlift.deployment.service_template_generator.get_account_id')
@@ -626,6 +629,17 @@ class TestServiceTemplateGenerator(TestCase):
             value,
             template['Outputs'][key].get('Value', None),
         )
+
+    def assert_template(self, expected, actual):
+        expected = json.loads(expected)
+        actual = json.loads(actual)
+        diff = DeepDiff(expected, actual, view='tree', max_diffs=None)
+        if diff:
+            msg = pformat(diff, indent=2)
+            msg = msg.replace('t1:', 'expected:')
+            msg = msg.replace('t2:', 'actual:')
+            self.fail(msg)
+        self.assertDictEqual(expected, actual)
 
     @staticmethod
     def _get_env_stack():

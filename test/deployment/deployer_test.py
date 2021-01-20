@@ -105,7 +105,7 @@ class TestDeployer(TestCase):
                     'secrets': [{'name': 'CLOUDLIFT_INJECTED_SECRETS', 'valueFrom': 'arn_injected_secrets'}],
                     'name': 'DummyContainer',
                     'image': 'nginx:v1',
-                    'essential': 'true',
+                    'essential': True,
                     'logConfiguration': {'logDriver': 'awslogs',
                                          'options': {'awslogs-stream-prefix': 'Dummy', 'awslogs-group': 'test-logs',
                                                      'awslogs-region': 'region1'}},
@@ -123,7 +123,7 @@ class TestDeployer(TestCase):
         expected = deepcopy(current_task_definition)
         expected['containerDefinitions'][0]['image'] = 'nginx:v2'
         expected['tags'][0]['value'] = 'id-01'
-        expected['memory'] = '20480'
+        expected['containerDefinitions'][0]['memory'] = 20480
 
         client.describe_services.return_value = {'services': [{
             'taskDefinition': 'tdARN1',

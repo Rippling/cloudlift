@@ -138,6 +138,7 @@ Resources:
               awslogs-group: staging-logs
               awslogs-region: us-west-2
               awslogs-stream-prefix: DummyRunSidekiqsh
+          Memory: 20480
           MemoryReservation: 1000
           Name: DummyRunSidekiqshContainer
           Secrets:
@@ -145,7 +146,6 @@ Resources:
               ValueFrom: arn_secret_label_v1
       ExecutionRoleArn: !Ref 'DummyRunSidekiqshTaskExecutionRole'
       Family: stagingDummyRunSidekiqshFamily
-      Memory: '20480'
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyRunSidekiqshRole'
     Type: AWS::ECS::TaskDefinition
@@ -199,6 +199,7 @@ Resources:
               awslogs-group: staging-logs
               awslogs-region: us-west-2
               awslogs-stream-prefix: Dummy
+          Memory: 20480
           MemoryReservation: 1000
           Name: DummyContainer
           PortMappings:
@@ -219,7 +220,6 @@ Resources:
           Name: redisContainer
       ExecutionRoleArn: !Ref 'DummyTaskExecutionRole'
       Family: stagingDummyFamily
-      Memory: '20480'
       PlacementConstraints: []
       TaskRoleArn: !Ref 'DummyRole'
     Type: AWS::ECS::TaskDefinition
