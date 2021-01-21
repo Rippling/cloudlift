@@ -55,7 +55,7 @@ def deploy_new_version(client, cluster_name, ecs_service_name, ecs_service_logic
 
 def deploy_task_definition(client, task_definition, cluster_name, ecs_service_name, color, timeout_secs, action_name):
     deployment = DeployAction(client, cluster_name, ecs_service_name)
-    log_bold(f"Starting {action_name} for {ecs_service_name}")
+    log_with_color(f"Starting {action_name} for {ecs_service_name}", color)
     if deployment.service.desired_count == 0:
         desired_count = 1
     else:
@@ -65,7 +65,7 @@ def deploy_task_definition(client, task_definition, cluster_name, ecs_service_na
     if not deployment_succeeded:
         record_deployment_failure_metric(deployment.cluster_name, deployment.service_name)
         raise UnrecoverableException(ecs_service_name + f" {action_name} failed.")
-    log_bold(ecs_service_name + f" {action_name}: Completed successfully.")
+    log_with_color(f"{ecs_service_name} {action_name}: Completed successfully.", color)
 
 
 def create_new_task_definition(color, ecr_image_uri, ecs_service_name, env_name,
@@ -96,7 +96,7 @@ def create_new_task_definition(color, ecr_image_uri, ecs_service_name, env_name,
     diff.pop('dictionary_item_removed', 'no dictionary_item_removed')
 
     if diff:
-        log_intent(pformat(diff))
+        log_with_color(f"{ecs_service_name} task definition diffs: {pformat(diff)}", color)
     return deployment.update_task_definition(updated_task_definition, deployment_identifier)
 
 
