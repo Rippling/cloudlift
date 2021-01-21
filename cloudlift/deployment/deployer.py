@@ -86,7 +86,7 @@ def create_new_task_definition(color, ecr_image_uri, ecs_service_name, env_name,
         configuration=service_configuration,
         region=region,
     )
-    updated_task_definition = EcsTaskDefinition(builder.build_dict(
+    updated_task_definition = EcsTaskDefinition(builder.build_task_definition(
         container_configurations=container_configurations,
         ecr_image_uri=ecr_image_uri,
         fallback_task_role=task_definition.role_arn,

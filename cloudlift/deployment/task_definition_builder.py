@@ -6,6 +6,7 @@ from troposphere.ecs import (ContainerDefinition,
                              HealthCheck)
 
 from cloudlift.deployment.launch_types import LAUNCH_TYPE_FARGATE, get_launch_type
+from stringcase import camelcase
 
 HARD_LIMIT_MEMORY_IN_MB = 20480
 
@@ -17,12 +18,12 @@ class TaskDefinitionBuilder:
         self.configuration = configuration
         self.region = region
 
-    def build_dict(self,
-                   container_configurations,
-                   ecr_image_uri,
-                   fallback_task_role,
-                   fallback_task_execution_role,
-                   ):
+    def build_task_definition(self,
+                              container_configurations,
+                              ecr_image_uri,
+                              fallback_task_role,
+                              fallback_task_execution_role,
+                              ):
         t = Template()
         t.add_resource(self.build_cloudformation_resource(
             container_configurations,
@@ -31,7 +32,8 @@ class TaskDefinitionBuilder:
             fallback_task_execution_role=fallback_task_execution_role,
         ))
         task_definition = t.to_dict()["Resources"][self._resource_name(self.service_name)]["Properties"]
-        return camelize_keys(task_definition)
+        return _cloudformation_to_boto3_payload(task_definition, ignore_keys={'awslogs-group', 'awslogs-region',
+                                                                              'awslogs-stream-prefix'})
 
     def build_cloudformation_resource(
             self,
@@ -159,9 +161,6 @@ class TaskDefinitionBuilder:
             td_kwargs['NetworkMode'] = 'awsvpc'
             td_kwargs['Cpu'] = str(config['fargate']['cpu'])
             td_kwargs['Memory'] = str(config['fargate']['memory'])
-        else:
-            if 'memory' in config:
-                td_kwargs['Memory'] = str(config.get('memory'))
 
         return TaskDefinition(
             self._resource_name(service_name),
@@ -201,19 +200,19 @@ class TaskDefinitionBuilder:
         )
 
 
-def camelize_keys(data):
+def _cloudformation_to_boto3_payload(data, ignore_keys=set()):
     if not isinstance(data, dict):
         return data
 
     result = dict()
     for k, v in data.items():
-        key = _camel_case(k)
+        key = k if k in ignore_keys else camelcase(k)
         if isinstance(v, dict):
-            result[key] = camelize_keys(v)
+            result[key] = _cloudformation_to_boto3_payload(v, ignore_keys)
         elif isinstance(v, list):
             elements = list()
             for each in v:
-                elements.append(camelize_keys(each))
+                elements.append(_cloudformation_to_boto3_payload(each, ignore_keys))
             result[key] = elements
         elif isinstance(v, str):
             if v == 'true' or v == 'false':
@@ -223,10 +222,6 @@ def camelize_keys(data):
         else:
             result[key] = v
     return result
-
-
-def _camel_case(value):
-    return value[:1].lower() + value[1:]
 
 
 def container_name(service_name):
