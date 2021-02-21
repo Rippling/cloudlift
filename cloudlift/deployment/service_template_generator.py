@@ -854,7 +854,7 @@ service is down',
     def create_target_group_alarms(self, target_group_name, target_group, alb_full_name, alb_config):
         unhealthy_alarm = Alarm(
             'TargetGroupUnhealthyHostAlarm' + target_group_name,
-            EvaluationPeriods=1,
+            EvaluationPeriods=2,
             Dimensions=[
                 MetricDimension(
                     Name='LoadBalancer',
@@ -872,7 +872,7 @@ service is down',
             Period=60,
             ComparisonOperator='GreaterThanOrEqualToThreshold',
             Statistic='Sum',
-            Threshold='1',
+            Threshold='2',
             MetricName='UnHealthyHostCount',
             TreatMissingData='notBreaching'
         )

@@ -609,14 +609,14 @@ Resources:
           Value: ''
         - Name: TargetGroup
           Value: !GetAtt 'TargetGroupDummy.TargetGroupFullName'
-      EvaluationPeriods: 1
+      EvaluationPeriods: 2
       MetricName: UnHealthyHostCount
       Namespace: AWS/ApplicationELB
       OKActions:
         - !Ref 'NotificationSnsArn'
       Period: 60
       Statistic: Sum
-      Threshold: '1'
+      Threshold: '2'
       TreatMissingData: notBreaching
     Type: AWS::CloudWatch::Alarm
   TargetGroupUnhealthyHostAlarmTargetGroupDummyWithCustomListener:
@@ -630,13 +630,13 @@ Resources:
           Value: app/albname/randomalbid
         - Name: TargetGroup
           Value: !GetAtt 'TargetGroupDummyWithCustomListener.TargetGroupFullName'
-      EvaluationPeriods: 1
+      EvaluationPeriods: 2
       MetricName: UnHealthyHostCount
       Namespace: AWS/ApplicationELB
       OKActions:
         - !Ref 'NotificationSnsArn'
       Period: 60
       Statistic: Sum
-      Threshold: '1'
+      Threshold: '2'
       TreatMissingData: notBreaching
     Type: AWS::CloudWatch::Alarm
